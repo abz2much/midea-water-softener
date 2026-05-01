@@ -13,7 +13,6 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
-    UnitOfMass,
     UnitOfTime,
     UnitOfVolume,
     UnitOfVolumeFlowRate,
@@ -28,7 +27,6 @@ from .const import (
     ATTR_FLOW_RATE,
     ATTR_REGEN_SECONDS_REMAINING,
     ATTR_SALT_REMAINING,
-    ATTR_SALT_SETTING,
     ATTR_SOFT_WATER_REMAINING,
     ATTR_USE_DAYS,
     ATTR_WATER_CONSUMPTION_TOTAL,
@@ -100,14 +98,6 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTime.SECONDS,
         icon="mdi:timer-outline",
-    ),
-    WaterSoftenerSensorDescription(
-        key="salt_setting",
-        attr_key=ATTR_SALT_SETTING,
-        name="Salt Capacity Setting",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfMass.KILOGRAMS,
-        icon="mdi:shaker",
     ),
 )
 

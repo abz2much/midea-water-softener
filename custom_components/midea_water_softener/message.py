@@ -134,7 +134,6 @@ class DeviceStatus:
         "water_consumption_raw",
         "water_consumption_total",
         "salt_remaining",
-        "salt_setting",
         "use_days",
         "water_hardness",
         "regen_interval",
@@ -194,7 +193,6 @@ def parse_response(raw: bytes | bytearray) -> DeviceStatus | None:
     s.regen_min             = body[15]                       # byte25: timing_regeneration_min
     s.regen_seconds_remaining = body[16] + (body[17] << 8)  # byte26+27: regeneration_left_seconds
     s.use_days              = body[18] + (body[19] << 8)    # byte28+29: use_days
-    s.salt_setting          = body[21]                       # byte31: salt_setting, kg
 
     # 4-byte soft water remaining in L — soft_available_big (byte31-34 → body[21:25])
     if len(body) >= 25:
