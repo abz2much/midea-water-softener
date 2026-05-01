@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
+    UnitOfMass,
     UnitOfTime,
     UnitOfVolume,
     UnitOfVolumeFlowRate,
@@ -25,10 +26,12 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     ATTR_DEVICE_STATUS,
     ATTR_FLOW_RATE,
+    ATTR_REGEN_SECONDS_REMAINING,
     ATTR_SALT_DAYS_REMAINING,
     ATTR_SALT_REMAINING,
+    ATTR_SALT_SETTING,
     ATTR_SOFT_WATER_REMAINING,
-    ATTR_WATER_CONSUMPTION_DAILY_AVG,
+    ATTR_USE_DAYS,
     ATTR_WATER_CONSUMPTION_TOTAL,
     DOMAIN,
 )
@@ -91,13 +94,29 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
         icon="mdi:water-boiler",
     ),
     WaterSoftenerSensorDescription(
-        key="water_consumption_daily_avg",
-        attr_key=ATTR_WATER_CONSUMPTION_DAILY_AVG,
-        name="Daily Average Water Consumption",
-        device_class=SensorDeviceClass.WATER,
+        key="use_days",
+        attr_key=ATTR_USE_DAYS,
+        name="Days in Use",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        native_unit_of_measurement=UnitOfTime.DAYS,
+        icon="mdi:counter",
+    ),
+    WaterSoftenerSensorDescription(
+        key="regen_seconds_remaining",
+        attr_key=ATTR_REGEN_SECONDS_REMAINING,
+        name="Regeneration Time Remaining",
+        device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfVolume.LITERS,
-        icon="mdi:chart-bar",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        icon="mdi:timer-outline",
+    ),
+    WaterSoftenerSensorDescription(
+        key="salt_setting",
+        attr_key=ATTR_SALT_SETTING,
+        name="Salt Capacity Setting",
+        state_class=SensorStateClass.MEASUREMENT,
+        native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+        icon="mdi:shaker",
     ),
 )
 

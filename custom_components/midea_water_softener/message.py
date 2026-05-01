@@ -133,9 +133,10 @@ class DeviceStatus:
         "soft_water_remaining",
         "water_consumption_raw",
         "water_consumption_total",
-        "water_consumption_daily_avg",
         "salt_remaining",
         "salt_days_remaining",
+        "salt_setting",
+        "use_days",
         "water_hardness",
         "regen_interval",
         "regen_hour",
@@ -177,8 +178,8 @@ def parse_response(raw: bytes | bytearray) -> DeviceStatus | None:
     if len(body) < 1 or body[0] != QUERY_BODY_TYPE:
         return None
 
-    # Minimum body length to read through regen_seconds_remaining high byte (body[17] = byte27)
-    if len(body) < 18:
+    # Minimum body length to read through salt_setting (body[20] = byte30)
+    if len(body) < 21:
         return None
 
     s = DeviceStatus()
@@ -194,6 +195,8 @@ def parse_response(raw: bytes | bytearray) -> DeviceStatus | None:
     s.regen_hour            = body[14]                       # byte24: timing_regeneration_hour
     s.regen_min             = body[15]                       # byte25: timing_regeneration_min
     s.regen_seconds_remaining = body[16] + (body[17] << 8)  # byte26+27: regeneration_left_seconds
+    s.use_days              = body[18] + (body[19] << 8)    # byte28+29: use_days
+    s.salt_setting          = body[20]                       # byte30: salt_setting, kg
 
     # 4-byte soft water remaining in L — soft_available_big (byte31-34 → body[21:25])
     if len(body) >= 25:
@@ -204,12 +207,8 @@ def parse_response(raw: bytes | bytearray) -> DeviceStatus | None:
     # 4-byte total consumption in L — water_consumption_big (byte35-38 → body[25:29])
     if len(body) >= 29:
         s.water_consumption_total = (
-            body[25] + (body[26] << 8) + (body[27] << 16) + (body[28] << 24)
+            body[28] + (body[27] << 8) + (body[26] << 16) + (body[25] << 24)
         )
-
-    # Daily average L — water_consumption_average (byte43+44 → body[33:35])
-    if len(body) >= 35:
-        s.water_consumption_daily_avg = body[33] + (body[34] << 8)
 
     # Flags — byte61 → body[51]
     if len(body) >= 52:
