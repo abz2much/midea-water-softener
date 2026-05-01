@@ -5,10 +5,7 @@ Byte offsets derived from T_0000_ED_10008619_2024092001.lua (1-indexed in Lua â†
 """
 from __future__ import annotations
 
-import logging
 from enum import IntEnum
-
-_LOGGER = logging.getLogger(__name__)
 
 DEVICE_TYPE = 0xED
 QUERY_BODY_TYPE = 0x09   # expected body[0] in the *response* (used in parse_response)
@@ -183,12 +180,6 @@ def parse_response(raw: bytes | bytearray) -> DeviceStatus | None:
     # Minimum body length to read through salt_setting (body[20] = byte30)
     if len(body) < 21:
         return None
-
-    _LOGGER.warning(
-        "parse_response body dump (%d bytes): %s",
-        len(body),
-        " ".join(f"[{i}]=0x{b:02x}" for i, b in enumerate(body)),
-    )
 
     s = DeviceStatus()
 
