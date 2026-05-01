@@ -5,7 +5,10 @@ Byte offsets derived from T_0000_ED_10008619_2024092001.lua (1-indexed in Lua �
 """
 from __future__ import annotations
 
+import logging
 from enum import IntEnum
+
+_LOGGER = logging.getLogger(__name__)
 
 DEVICE_TYPE = 0xED
 QUERY_BODY_TYPE = 0x09   # expected body[0] in the *response* (used in parse_response)
@@ -134,7 +137,6 @@ class DeviceStatus:
         "water_consumption_raw",
         "water_consumption_total",
         "salt_remaining",
-        "salt_days_remaining",
         "salt_setting",
         "use_days",
         "water_hardness",
@@ -182,6 +184,12 @@ def parse_response(raw: bytes | bytearray) -> DeviceStatus | None:
     if len(body) < 21:
         return None
 
+    _LOGGER.warning(
+        "parse_response body dump (%d bytes): %s",
+        len(body),
+        " ".join(f"[{i}]=0x{b:02x}" for i, b in enumerate(body)),
+    )
+
     s = DeviceStatus()
 
     # Lua byteN → body[N-10]. Field names match Lua stream keys.
@@ -189,14 +197,13 @@ def parse_response(raw: bytes | bytearray) -> DeviceStatus | None:
     s.soft_water_remaining  = body[3]  + (body[4]  << 8)    # byte13+14: soft_available, L
     s.water_consumption_raw = body[5]  + (body[6]  << 8)    # byte15+16: water_consumption, 100L units
     s.salt_remaining        = body[7]                        # byte17: left_salt, %
-    s.salt_days_remaining   = body[9]  + (body[10] << 8)    # byte19+20: remaining_days
     s.water_hardness        = body[11] + (body[12] << 8)    # byte21+22: water_hardness, ppm (LE)
     s.regen_interval        = body[13]                       # byte23: flushing_days
     s.regen_hour            = body[14]                       # byte24: timing_regeneration_hour
     s.regen_min             = body[15]                       # byte25: timing_regeneration_min
     s.regen_seconds_remaining = body[16] + (body[17] << 8)  # byte26+27: regeneration_left_seconds
     s.use_days              = body[18] + (body[19] << 8)    # byte28+29: use_days
-    s.salt_setting          = body[20]                       # byte30: salt_setting, kg
+    s.salt_setting          = body[21]                       # byte31: salt_setting, kg
 
     # 4-byte soft water remaining in L — soft_available_big (byte31-34 → body[21:25])
     if len(body) >= 25:

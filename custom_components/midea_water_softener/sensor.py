@@ -27,7 +27,6 @@ from .const import (
     ATTR_DEVICE_STATUS,
     ATTR_FLOW_RATE,
     ATTR_REGEN_SECONDS_REMAINING,
-    ATTR_SALT_DAYS_REMAINING,
     ATTR_SALT_REMAINING,
     ATTR_SALT_SETTING,
     ATTR_SOFT_WATER_REMAINING,
@@ -69,14 +68,6 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
         icon="mdi:shaker-outline",
-    ),
-    WaterSoftenerSensorDescription(
-        key="salt_days_remaining",
-        attr_key=ATTR_SALT_DAYS_REMAINING,
-        name="Salt Days Remaining",
-        state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfTime.DAYS,
-        icon="mdi:calendar-clock",
     ),
     WaterSoftenerSensorDescription(
         key="device_status",

@@ -20,7 +20,6 @@ SERVERS = {
 ATTR_SOFT_WATER_REMAINING = "soft_water_remaining"
 ATTR_FLOW_RATE = "flow_rate"
 ATTR_SALT_REMAINING = "salt_remaining"
-ATTR_SALT_DAYS_REMAINING = "salt_days_remaining"
 ATTR_DEVICE_STATUS = "device_status"
 ATTR_WATER_CONSUMPTION_TOTAL = "water_consumption_total"
 ATTR_USE_DAYS = "use_days"
