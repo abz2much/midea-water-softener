@@ -204,10 +204,10 @@ def parse_response(raw: bytes | bytearray) -> DeviceStatus | None:
             body[21] + (body[22] << 8) + (body[23] << 16) + (body[24] << 24)
         )
 
-    # 4-byte total consumption in L — water_consumption_big (byte35-38 → body[25:29])
+    # 4-byte total consumption in L — water_consumption_big (byte35-38 → body[25:29]), little-endian
     if len(body) >= 29:
         s.water_consumption_total = (
-            body[28] + (body[27] << 8) + (body[26] << 16) + (body[25] << 24)
+            body[25] + (body[26] << 8) + (body[27] << 16) + (body[28] << 24)
         )
 
     # Flags — byte61 → body[51]
