@@ -22,8 +22,7 @@ async def async_setup_entry(
 
 class RegenNowButton(CoordinatorEntity[WaterSoftenerCoordinator], ButtonEntity):
     _attr_has_entity_name = True
-    _attr_name = "Regenerate Now"
-    _attr_icon = "mdi:refresh"
+    _attr_translation_key = "regenerate_now"
 
     def __init__(
         self,

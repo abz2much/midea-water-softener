@@ -34,7 +34,7 @@ def test_threshold_is_in_the_status_dict():
 def test_threshold_sensor_description():
     desc = next(d for d in SENSOR_DESCRIPTIONS if d.key == "leak_threshold")
     assert desc.attr_key == "leak_threshold"
-    assert desc.name == "Anti-Leakage Threshold"
+    assert desc.translation_key == "leak_threshold"
     assert desc.native_unit_of_measurement == UnitOfVolume.LITERS
     assert desc.device_class == SensorDeviceClass.VOLUME
     assert desc.state_class is None

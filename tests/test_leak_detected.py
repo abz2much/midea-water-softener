@@ -45,7 +45,7 @@ def _entity(leak_detected):
 
 def test_binary_sensor_identity_and_class():
     entity = _entity(False)
-    assert entity.name == "Leak Detected"
+    assert entity.translation_key == "leak_detected"
     assert entity.device_class == BinarySensorDeviceClass.MOISTURE
     assert entity.unique_id == "entry1_leak_detected"
     assert ("midea_water_softener", "123456") in entity.device_info["identifiers"]

@@ -25,8 +25,7 @@ async def async_setup_entry(
 
 class RegenTimeEntity(CoordinatorEntity[WaterSoftenerCoordinator], TimeEntity):
     _attr_has_entity_name = True
-    _attr_name = "Regeneration Time"
-    _attr_icon = "mdi:clock-outline"
+    _attr_translation_key = "regen_time"
 
     def __init__(
         self,

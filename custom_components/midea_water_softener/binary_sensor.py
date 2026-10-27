@@ -28,7 +28,7 @@ class WaterSoftenerLeakSensor(
     CoordinatorEntity[WaterSoftenerCoordinator], BinarySensorEntity
 ):
     _attr_has_entity_name = True
-    _attr_name = "Leak Detected"
+    _attr_translation_key = "leak_detected"
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(

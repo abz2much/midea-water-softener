@@ -32,8 +32,7 @@ NUMBER_DESCRIPTIONS: tuple[WaterSoftenerNumberDescription, ...] = (
     WaterSoftenerNumberDescription(
         key="hardness",
         attr_key=ATTR_HARDNESS,
-        name="Hardness Setting",
-        icon="mdi:water-minus",
+        translation_key="hardness",
         native_min_value=0,
         native_max_value=2000,
         native_step=5,
@@ -44,8 +43,7 @@ NUMBER_DESCRIPTIONS: tuple[WaterSoftenerNumberDescription, ...] = (
     WaterSoftenerNumberDescription(
         key="regen_interval",
         attr_key=ATTR_REGEN_INTERVAL,
-        name="Regeneration Interval",
-        icon="mdi:calendar-refresh",
+        translation_key="regen_interval",
         native_min_value=1,
         native_max_value=99,
         native_step=1,
