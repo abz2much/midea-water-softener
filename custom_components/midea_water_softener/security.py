@@ -46,8 +46,11 @@ class MSmartSecurity:
         ).hexdigest()
 
     def encrypt_password(self, login_id: str, password: str) -> str:
+        # UTF-8 so a non-ASCII password cannot crash. Upstream still encodes ASCII,
+        # so the cloud's own hashing of such passwords is unconfirmed; a wrong
+        # hash shows up as a rejected login (InvalidAuth), not a crash.
         m = sha256()
-        m.update(password.encode("ascii"))
+        m.update(password.encode("utf-8"))
         login_hash = login_id + m.hexdigest() + self._login_key
         m2 = sha256()
         m2.update(login_hash.encode("ascii"))
@@ -55,7 +58,7 @@ class MSmartSecurity:
 
     def encrypt_iam_password(self, login_id: str, password: str) -> str:
         m = md5()
-        m.update(password.encode("ascii"))
+        m.update(password.encode("utf-8"))
         m2 = md5()
         m2.update(m.hexdigest().encode("ascii"))
         login_hash = login_id + m2.hexdigest() + self._login_key

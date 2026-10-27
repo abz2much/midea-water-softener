@@ -11,10 +11,17 @@ Custom Home Assistant integration for the **Midea QS2476-90** water softener (9 
 | Remaining Soft Water | L | Soft water available before the next regeneration |
 | Flow Rate | L/min | Current water flow through the device |
 | Remaining Salt | % | Estimated salt level remaining in the brine tank |
-| Salt Days Remaining | days | Predicted days until salt runs out |
 | Device Status | — | Current state: `normal`, `standby`, or `regenerating` |
 | Total Water Consumption | L | Cumulative water processed (total increasing) |
-| Daily Average Water Consumption | L | Rolling daily average consumption |
+| Days in Use | days | Days the softener has been in use |
+| Regeneration Time Remaining | s | Time left in the current regeneration |
+| Anti-Leakage Threshold | L | Leak limit set on the softener (read-only) |
+
+### Binary sensors
+
+| Entity | Description |
+|---|---|
+| Leak Detected | On when the softener reports a leak |
 
 ### Controls
 
@@ -61,7 +68,7 @@ Custom Home Assistant integration for the **Midea QS2476-90** water softener (9 
 ## Notes
 
 - The integration polls the MSmartHome cloud. A stable internet connection is required; local LAN communication is not supported.
-- All write operations (switches, numbers, time, button) send commands through the cloud and trigger an immediate poll to refresh state.
+- All write operations (switches, numbers, time, button) send commands through the cloud. The switches, numbers and time entity then trigger an immediate poll to refresh state. The Regenerate Now button does not; its state shows on the next regular poll.
 - The session is established once at startup and reused across poll cycles. If the cloud says the session has expired, the integration logs in again once and retries that request once. If that also fails, the request fails with an error and the next poll tries again. A wrong password or an unreachable cloud at startup stops setup with a clear error.
 
 ## Credits
