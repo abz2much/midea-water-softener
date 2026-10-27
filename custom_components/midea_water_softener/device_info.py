@@ -10,6 +10,15 @@ from .const import CONF_MODEL, CONF_SERIAL_NUMBER, DOMAIN
 DEFAULT_MODEL = "QS2476-90"
 
 
+def unique_id_prefix(entry: ConfigEntry) -> str:
+    """The start of every entity unique ID: the device ID.
+
+    This is the unique ID the config entry already has. Entities used the
+    config entry ID before; async_migrate_entry rewrites those in place.
+    """
+    return entry.unique_id or str(entry.data["device_id"])
+
+
 def build_device_info(entry: ConfigEntry) -> DeviceInfo:
     info = DeviceInfo(
         identifiers={(DOMAIN, str(entry.data["device_id"]))},

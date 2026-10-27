@@ -53,7 +53,7 @@ async def setup_entry(hass, make_session, entry):
     return er.async_get(hass)
 
 
-# entity_id -> (visible name, unique ID suffix). Recorded before the polish batch.
+# entity_id -> (visible name, unique ID suffix). Names and entity IDs recorded before the polish batch.
 EXPECTED = {
     "binary_sensor.test_softener_leak_detected": ("Test softener Leak Detected", "leak_detected"),
     "button.test_softener_regenerate_now": ("Test softener Regenerate Now", "regenerate_now"),
@@ -87,6 +87,6 @@ async def test_entity_ids_names_and_unique_ids(hass, make_session):
     assert set(found) == set(EXPECTED)
     for entity_id, (name, suffix) in EXPECTED.items():
         assert found[entity_id][0] == name, entity_id
-        assert found[entity_id][1] == f"{entry.entry_id}_{suffix}", entity_id
+        assert found[entity_id][1] == f"{entry.unique_id}_{suffix}", entity_id
 
     await hass.config_entries.async_unload(entry.entry_id)

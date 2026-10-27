@@ -16,7 +16,7 @@ from .const import (
     ATTR_SOFTEN,
 )
 from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
-from .device_info import build_device_info
+from .device_info import build_device_info, unique_id_prefix
 from .device import WaterSoftenerDevice
 
 
@@ -75,7 +75,7 @@ class WaterSoftenerSwitch(CoordinatorEntity[WaterSoftenerCoordinator], SwitchEnt
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        self._attr_unique_id = f"{unique_id_prefix(entry)}_{description.key}"
         self._attr_device_info = build_device_info(entry)
 
     @property

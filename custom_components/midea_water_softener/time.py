@@ -11,7 +11,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import ATTR_REGEN_HOUR, ATTR_REGEN_MIN
 from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
-from .device_info import build_device_info
+from .device_info import build_device_info, unique_id_prefix
 
 
 async def async_setup_entry(
@@ -33,7 +33,7 @@ class RegenTimeEntity(CoordinatorEntity[WaterSoftenerCoordinator], TimeEntity):
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{entry.entry_id}_regen_time"
+        self._attr_unique_id = f"{unique_id_prefix(entry)}_regen_time"
         self._attr_device_info = build_device_info(entry)
 
     @property

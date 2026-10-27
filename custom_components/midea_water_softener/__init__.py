@@ -20,6 +20,7 @@ from .const import (
 )
 from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
 from .device import WaterSoftenerDevice
+from .migration import async_migrate_unique_ids
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,6 +36,21 @@ PLATFORMS: list[Platform] = [
 # The coordinator is in entry.runtime_data. hass.data[DOMAIN] only keeps
 #   entry.entry_id + ".cloud" → MSmartHomeCloud (persists across setup retries)
 _CLOUD_SUFFIX = ".cloud"
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: WaterSoftenerConfigEntry) -> bool:
+    """Bring an older entry up to date.
+
+    Minor 2: entity unique IDs use the device ID. Only the minor version is
+    bumped, so an older release still loads the entry (it will make its own
+    entities, though; see the release notes).
+    """
+    if entry.version > 1:
+        return False  # saved by a newer major version
+    if entry.minor_version < 2:
+        await async_migrate_unique_ids(hass, entry)
+        hass.config_entries.async_update_entry(entry, minor_version=2)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: WaterSoftenerConfigEntry) -> bool:

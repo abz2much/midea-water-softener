@@ -26,7 +26,7 @@ from .const import (
     LEAK_LIMIT_STEP_L,
 )
 from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
-from .device_info import build_device_info
+from .device_info import build_device_info, unique_id_prefix
 from .device import WaterSoftenerDevice
 
 
@@ -103,7 +103,7 @@ class WaterSoftenerNumber(CoordinatorEntity[WaterSoftenerCoordinator], NumberEnt
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        self._attr_unique_id = f"{unique_id_prefix(entry)}_{description.key}"
         self._attr_device_info = build_device_info(entry)
 
     @property
