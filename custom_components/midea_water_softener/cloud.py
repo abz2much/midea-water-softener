@@ -4,11 +4,13 @@ Authentication and request pattern mirrors midea_auto_cloud (sususweet/midea_aut
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import datetime
 import json
 import logging
 import time
+from typing import Awaitable, Callable
 from secrets import token_hex
 
 import aiohttp
@@ -18,6 +20,26 @@ from .security import MSmartSecurity
 _LOGGER = logging.getLogger(__name__)
 
 _DEFAULT_API_URL = "https://mp-prod.appsmb.com/mas/v5/app/proxy?alias="
+
+# Cloud code for "user token not exist". Confirmed upstream in
+# sususweet/midea_auto_cloud PR #225. Other codes are not treated as expiry.
+_CODE_SESSION_EXPIRED = 40002
+
+
+class MSmartHomeError(Exception):
+    """Base class for MSmartHome cloud errors."""
+
+
+class InvalidAuth(MSmartHomeError):
+    """The cloud rejected the account or password."""
+
+
+class CannotConnect(MSmartHomeError):
+    """The cloud could not be reached, or sent a reply we cannot read."""
+
+
+class SessionExpired(MSmartHomeError):
+    """The cloud no longer accepts our session token."""
 
 
 def _bytes_to_dec_string(data: bytes | bytearray) -> bytearray:
@@ -59,6 +81,7 @@ class MSmartHomeCloud:
         self._device_id = MSmartSecurity.get_device_id(account)
         self._uid: str = ""
         self._access_token: str | None = None
+        self._login_lock = asyncio.Lock()
         self._auth_base = base64.b64encode(
             f"{MSmartSecurity.APP_KEY}:{self._security._iot_key}".encode("ascii")
         ).decode("ascii")
@@ -91,6 +114,11 @@ class MSmartHomeCloud:
         }
 
     async def _request(self, endpoint: str, data: dict) -> dict | None:
+        """POST to the cloud. Returns the data dict, or None on an API error.
+
+        Raises CannotConnect if the cloud is unreachable or sends unreadable
+        data, and SessionExpired if it says our token is no longer valid.
+        """
         if not data.get("reqId"):
             data["reqId"] = token_hex(16)
         if not data.get("stamp"):
@@ -121,9 +149,9 @@ class MSmartHomeCloud:
             ) as resp:
                 raw = await resp.read()
                 body = json.loads(raw)
-        except Exception as exc:
+        except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
             _LOGGER.debug("Request to %s failed: %s", endpoint, exc)
-            return None
+            raise CannotConnect(f"Cannot reach the Midea cloud ({endpoint})") from exc
 
         try:
             code = int(body.get("code", -1))
@@ -134,6 +162,9 @@ class MSmartHomeCloud:
             if "/transparent/send" in endpoint:
                 _LOGGER.debug("transparent/send success, data=%s", body.get("data"))
             return body.get("data")
+
+        if code == _CODE_SESSION_EXPIRED:
+            raise SessionExpired(f"Midea cloud session expired ({endpoint})")
 
         if "/transparent/send" in endpoint:
             _LOGGER.warning("transparent/send error: code=%s full_response=%s", body.get("code"), body)
@@ -169,14 +200,23 @@ class MSmartHomeCloud:
             return resp.get("loginId")
         return None
 
-    async def login(self) -> bool:
-        """Authenticate with the MSmartHome cloud. Returns True on success."""
+    async def login(self) -> None:
+        """Authenticate with the MSmartHome cloud.
+
+        Raises InvalidAuth if the cloud rejects the account or password, and
+        CannotConnect if it cannot be reached.
+        """
+        try:
+            await self._login()
+        except SessionExpired as exc:
+            raise InvalidAuth("The Midea cloud rejected the login") from exc
+
+    async def _login(self) -> None:
         await self._re_route()
 
         login_id = await self._get_login_id()
         if not login_id:
-            _LOGGER.error("Failed to obtain MSmartHome login ID")
-            return False
+            raise InvalidAuth("The Midea cloud did not accept the account")
 
         stamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         iot_data = self._make_general_data()
@@ -198,15 +238,13 @@ class MSmartHomeCloud:
         }
         resp = await self._request("/mj/user/login", payload)
         if not resp:
-            _LOGGER.error("MSmartHome login request failed")
-            return False
+            raise InvalidAuth("The Midea cloud rejected the account or password")
 
         self._uid = resp.get("uid", "")
         mdata = resp.get("mdata") or {}
         self._access_token = mdata.get("accessToken")
         if not self._access_token:
-            _LOGGER.error("No accessToken in login response: %s", resp)
-            return False
+            raise InvalidAuth("The Midea cloud sent no access token")
 
         # 'accessToken' and 'randomData' are both CBC-encrypted with SHA256(APP_KEY).
         # Decrypted ASCII strings become the session key and IV for device command encryption.
@@ -225,7 +263,25 @@ class MSmartHomeCloud:
             )
 
         _LOGGER.debug("MSmartHome login successful, uid=%s", self._uid)
-        return True
+
+    async def _call(self, build: Callable[[], Awaitable[dict | None]]) -> dict | None:
+        """Run a request. If the session has expired, log in again and retry once.
+
+        `build` makes the request fresh on each call, because a new login
+        changes the uid and the session key.
+        """
+        token_before = self._access_token
+        try:
+            return await build()
+        except SessionExpired:
+            pass
+
+        async with self._login_lock:
+            # Another task may have logged in again while we waited.
+            if self._access_token == token_before:
+                _LOGGER.debug("Session expired; logging in again")
+                await self.login()
+        return await build()
 
     # ------------------------------------------------------------------
     # Device discovery
@@ -233,8 +289,12 @@ class MSmartHomeCloud:
 
     async def list_appliances(self) -> list[dict]:
         """Return all appliances registered to the account."""
-        data = self._make_general_data()
-        resp = await self._request("/v1/appliance/user/list/get", data)
+        async def build() -> dict | None:
+            return await self._request(
+                "/v1/appliance/user/list/get", self._make_general_data()
+            )
+
+        resp = await self._call(build)
         if not resp:
             return []
 
@@ -263,29 +323,32 @@ class MSmartHomeCloud:
         Returns decoded response bytes, or None on failure.
         """
         dec_str = _bytes_to_dec_string(message)
-        try:
+
+        async def build() -> dict | None:
             encrypted_order = self._security.aes_encrypt(dec_str).hex()
+            # Use only the 17 fields accepted by transparent/send — do NOT use _make_general_data()
+            # as it includes appVersion and platformId which the endpoint rejects (code 9999).
+            data = {
+                "appId": self.APP_ID,
+                "applianceCode": str(device_id),
+                "clientType": "1",
+                "deviceId": self._device_id,
+                "format": "2",
+                "isFull": "false",
+                "order": encrypted_order,
+                "reqId": token_hex(16),
+                "src": self.SRC,
+                "stamp": datetime.datetime.now().strftime("%Y%m%d%H%M%S"),
+                "timestamp": "true",
+                "uid": self._uid,
+            }
+            return await self._request("/v1/appliance/transparent/send", data)
+
+        try:
+            resp = await self._call(build)
         except RuntimeError as exc:
             _LOGGER.error("Cannot send command: %s", exc)
             return None
-
-        # Use only the 17 fields accepted by transparent/send — do NOT use _make_general_data()
-        # as it includes appVersion and platformId which the endpoint rejects (code 9999).
-        data = {
-            "appId": self.APP_ID,
-            "applianceCode": str(device_id),
-            "clientType": "1",
-            "deviceId": self._device_id,
-            "format": "2",
-            "isFull": "false",
-            "order": encrypted_order,
-            "reqId": token_hex(16),
-            "src": self.SRC,
-            "stamp": datetime.datetime.now().strftime("%Y%m%d%H%M%S"),
-            "timestamp": "true",
-            "uid": self._uid,
-        }
-        resp = await self._request("/v1/appliance/transparent/send", data)
         if not resp:
             return None
 

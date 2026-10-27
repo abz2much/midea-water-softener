@@ -62,7 +62,7 @@ Custom Home Assistant integration for the **Midea QS2476-90** water softener (9 
 
 - The integration polls the MSmartHome cloud. A stable internet connection is required; local LAN communication is not supported.
 - All write operations (switches, numbers, time, button) send commands through the cloud and trigger an immediate poll to refresh state.
-- The session is established once at startup and reused across poll cycles. If the session expires the integration will re-authenticate automatically on the next request failure.
+- The session is established once at startup and reused across poll cycles. If the cloud says the session has expired, the integration logs in again once and retries that request once. If that also fails, the request fails with an error and the next poll tries again. A wrong password or an unreachable cloud at startup stops setup with a clear error.
 
 ## Credits
 

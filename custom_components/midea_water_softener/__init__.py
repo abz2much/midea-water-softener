@@ -6,9 +6,10 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .cloud import MSmartHomeCloud
+from .cloud import CannotConnect, InvalidAuth, MSmartHomeCloud
 from .const import (
     CONF_ACCOUNT,
     CONF_DEVICE_ID,
@@ -58,8 +59,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         api_url = SERVERS.get(server, list(SERVERS.values())[0])
         session = async_get_clientsession(hass)
         cloud = MSmartHomeCloud(session, account, password, api_url)
-        if not await cloud.login():
-            return False
+        try:
+            await cloud.login()
+        except InvalidAuth as exc:
+            raise ConfigEntryAuthFailed("Midea login failed: check your password") from exc
+        except CannotConnect as exc:
+            raise ConfigEntryNotReady("Cannot reach the Midea cloud") from exc
         domain_data[cloud_key] = cloud
         _LOGGER.debug("New cloud session established for %s", device_name)
 
