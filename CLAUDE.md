@@ -103,6 +103,13 @@ In the Lua, the `addition` of `anti_leakage` (0x010A) carries the leak volume, a
 - **Config entry keys:** `host`, `token`, `key` (`CONF_HOST`, `CONF_TOKEN`, `CONF_KEY` in `const.py`). A blank IP in the `local` or `reconfigure` step means cloud only; reconfigure with a blank IP removes all three. The IP field uses `suggested_value`, not `default`: the frontend drops a cleared optional field, and a default would put the old IP back.
 - **Tests:** `tests/test_local.py` runs a fake softener on 127.0.0.1 using midea-local's own crypto. It needs the `socket_enabled` fixture because the HA test plugin blocks sockets.
 
+## Releases
+
+- `.github/workflows/release.yml` publishes releases. Never tag or create a release by hand.
+- To release: open a `release/vX.Y.Z` PR that only bumps `version` in `manifest.json`. Its description is the release notes (start with `## vX.Y.Z`, user-facing bullets).
+- After it merges and CI passes on main, the workflow creates tag `vX.Y.Z` and the GitHub release on that commit. If the tag already exists it does nothing, so ordinary merges release nothing.
+- No PR or an empty PR description stops the release with an error.
+
 ## Working Style
 
 - Ask clarifying questions before starting any large task.

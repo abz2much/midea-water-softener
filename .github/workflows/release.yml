@@ -1,0 +1,56 @@
+name: Release
+
+# Publishes a GitHub release after CI passes on main, when the manifest
+# version has no tag yet. Ordinary merges leave the version alone, so they
+# release nothing. The notes are the description of the merged release PR.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: release
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Release the manifest version if it has no tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          version=$(jq -r .version custom_components/midea_water_softener/manifest.json)
+          tag="v${version}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null; then
+            echo "${tag} already exists; nothing to release."
+            exit 0
+          fi
+
+          # The PR merged into this commit holds the release notes.
+          pr=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/pulls" --jq '.[0].number // empty')
+          if [ -z "${pr}" ]; then
+            echo "::error::No merged PR found for ${SHA}. Release through a PR whose description is the notes."
+            exit 1
+          fi
+          gh pr view "${pr}" --json body --jq .body > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::PR #${pr} has no description to use as release notes."
+            exit 1
+          fi
+
+          gh release create "${tag}" --target "${SHA}" --title "${tag}" --notes-file notes.md
+          echo "Released ${tag} from PR #${pr}."
