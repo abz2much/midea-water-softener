@@ -31,6 +31,9 @@ from .const import (
     ATTR_USE_DAYS,
     ATTR_WATER_CONSUMPTION_TOTAL,
     DOMAIN,
+    STATUS_NORMAL,
+    STATUS_REGENERATING,
+    STATUS_STANDBY,
 )
 from .coordinator import WaterSoftenerCoordinator
 from .device_info import build_device_info
@@ -72,6 +75,8 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
         key="device_status",
         attr_key=ATTR_DEVICE_STATUS,
         name="Device Status",
+        device_class=SensorDeviceClass.ENUM,
+        options=[STATUS_NORMAL, STATUS_STANDBY, STATUS_REGENERATING],
         icon="mdi:water-check",
     ),
     WaterSoftenerSensorDescription(
