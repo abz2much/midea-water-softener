@@ -17,6 +17,26 @@
           "scan_interval": "Poll interval (seconds)"
         }
       },
+      "local": {
+        "title": "Local control",
+        "description": "Enter your water softener's IP address to control it over your home network. The cloud is still used when the local connection fails. Leave it blank to use the cloud only.",
+        "data": {
+          "host": "IP address"
+        },
+        "data_description": {
+          "host": "For example 192.168.1.50. Give the softener a fixed IP address in your router so it doesn't change."
+        }
+      },
+      "reconfigure": {
+        "title": "Local control",
+        "description": "Enter your water softener's IP address to control it over your home network. The cloud is still used when the local connection fails. Leave it blank to use the cloud only.",
+        "data": {
+          "host": "IP address"
+        },
+        "data_description": {
+          "host": "For example 192.168.1.50. Give the softener a fixed IP address in your router so it doesn't change."
+        }
+      },
       "reauth_confirm": {
         "title": "Sign in again",
         "description": "Your Midea password no longer works. Enter the new password for {account}.",
@@ -28,11 +48,15 @@
     "error": {
       "invalid_auth": "Wrong email or password.",
       "cannot_connect": "Cannot reach the Midea cloud. Try again later.",
-      "no_devices": "No water softener found on this account."
+      "no_devices": "No water softener found on this account.",
+      "token_failed": "Could not get the local key from the Midea cloud. Try again, or leave the IP address blank to use the cloud only.",
+      "local_failed": "Could not connect to the water softener at this IP address. Check the address, or leave it blank to use the cloud only.",
+      "local_unavailable": "Local control is not available: the midea-local library is missing or has changed. Leave the IP address blank to use the cloud only, and check the Home Assistant log."
     },
     "abort": {
       "already_configured": "This water softener is already set up.",
-      "reauth_successful": "Password updated."
+      "reauth_successful": "Password updated.",
+      "reconfigure_successful": "Local control settings saved."
     }
   },
   "options": {

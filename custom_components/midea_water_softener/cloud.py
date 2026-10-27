@@ -15,6 +15,7 @@ from secrets import token_hex
 
 import aiohttp
 
+from .local import udp_id as local_udp_id
 from .security import MSmartSecurity
 
 _LOGGER = logging.getLogger(__name__)
@@ -219,6 +220,16 @@ class MSmartHomeCloud:
         except SessionExpired as exc:
             raise InvalidAuth("The Midea cloud rejected the login") from exc
 
+    async def ensure_logged_in(self) -> None:
+        """Log in unless a session already exists.
+
+        Setup skips the login when the cloud is down but local works, so the
+        first cloud fallback logs in here. The lock stops two at once.
+        """
+        async with self._login_lock:
+            if not self.is_logged_in:
+                await self.login()
+
     async def _login(self) -> None:
         await self._re_route()
 
@@ -320,6 +331,35 @@ class MSmartHomeCloud:
             except (KeyError, ValueError):
                 continue
         return appliances
+
+    async def get_keys(self, device_id: int) -> list[dict[str, str]]:
+        """Return the local token/key pairs the cloud holds for a device.
+
+        Mirrors midea-local's getToken call: one request per udpid method (1
+        and 2). Which pair works is only known by trying it on the device, so
+        all matching pairs are returned, method 1 first. Raises
+        LocalUnavailable if midea-local can't be used.
+        """
+        keys: list[dict[str, str]] = []
+        for method in (1, 2):
+            udp_id = local_udp_id(device_id, method)
+
+            async def build(udp_id: str | None = udp_id) -> dict | None:
+                data = self._make_general_data()
+                # MSmartHome rejects getToken (3004) without applianceCodes.
+                data.update({"udpid": udp_id, "applianceCodes": str(device_id)})
+                return await self._request("/v1/iot/secure/getToken", data)
+
+            resp = await self._call(build)
+            # Log only the count: the list holds the token and key.
+            tokens = (resp or {}).get("tokenlist") or []
+            _LOGGER.debug("getToken method %s returned %d entries", method, len(tokens))
+            for token in tokens:
+                if token.get("udpId") == udp_id:
+                    keys.append(
+                        {"token": token["token"].lower(), "key": token["key"].lower()}
+                    )
+        return keys
 
     # ------------------------------------------------------------------
     # Device communication

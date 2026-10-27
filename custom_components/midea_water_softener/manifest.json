@@ -7,6 +7,6 @@
   "documentation": "https://github.com/abz2much/midea-water-softener",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/abz2much/midea-water-softener/issues",
-  "requirements": ["pycryptodome>=3.0"],
+  "requirements": ["pycryptodome>=3.0", "midea-local>=12.2.0"],
   "version": "1.0.6"
 }
