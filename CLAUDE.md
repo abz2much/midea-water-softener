@@ -84,3 +84,11 @@ Set commands use `SET_BODY_TYPE = 0x15` with the EDNewSetParamPack format:
 - Batch related file changes together.
 - Be concise — no commentary after completing a task unless something important needs flagging.
 - No placeholder or example code — only real, working code.
+
+## Testing
+
+For new features and bug fixes, use the test-driven-development skill: write the failing test first, and show it failing before writing code.
+
+## Skills
+
+- For Python code and tests, use python-patterns and python-testing. The test-first rule still applies. Don't add a coverage target unless I ask.
