@@ -35,7 +35,7 @@ from .const import (
     STATUS_STANDBY,
 )
 from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
-from .device_info import build_device_info
+from .device_info import build_device_info, unique_id_prefix
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -47,70 +47,62 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
     WaterSoftenerSensorDescription(
         key="soft_water_remaining",
         attr_key=ATTR_SOFT_WATER_REMAINING,
-        name="Remaining Soft Water",
+        translation_key="soft_water_remaining",
         device_class=SensorDeviceClass.VOLUME_STORAGE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfVolume.LITERS,
-        icon="mdi:water-outline",
     ),
     WaterSoftenerSensorDescription(
         key="flow_rate",
         attr_key=ATTR_FLOW_RATE,
-        name="Flow Rate",
+        translation_key="flow_rate",
         device_class=SensorDeviceClass.VOLUME_FLOW_RATE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfVolumeFlowRate.LITERS_PER_MINUTE,
-        icon="mdi:water-pump",
     ),
     WaterSoftenerSensorDescription(
         key="salt_remaining",
         attr_key=ATTR_SALT_REMAINING,
-        name="Remaining Salt",
+        translation_key="salt_remaining",
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=PERCENTAGE,
-        icon="mdi:shaker-outline",
     ),
     WaterSoftenerSensorDescription(
         key="device_status",
         attr_key=ATTR_DEVICE_STATUS,
-        name="Device Status",
+        translation_key="device_status",
         device_class=SensorDeviceClass.ENUM,
         options=[STATUS_NORMAL, STATUS_STANDBY, STATUS_REGENERATING],
-        icon="mdi:water-check",
     ),
     WaterSoftenerSensorDescription(
         key="water_consumption_total",
         attr_key=ATTR_WATER_CONSUMPTION_TOTAL,
-        name="Total Water Consumption",
+        translation_key="water_consumption_total",
         device_class=SensorDeviceClass.WATER,
         state_class=SensorStateClass.TOTAL_INCREASING,
         native_unit_of_measurement=UnitOfVolume.LITERS,
-        icon="mdi:water-boiler",
     ),
     WaterSoftenerSensorDescription(
         key="use_days",
         attr_key=ATTR_USE_DAYS,
-        name="Days in Use",
+        translation_key="use_days",
         state_class=SensorStateClass.TOTAL_INCREASING,
         native_unit_of_measurement=UnitOfTime.DAYS,
-        icon="mdi:counter",
     ),
     WaterSoftenerSensorDescription(
         key="regen_seconds_remaining",
         attr_key=ATTR_REGEN_SECONDS_REMAINING,
-        name="Regeneration Time Remaining",
+        translation_key="regen_seconds_remaining",
         device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTime.SECONDS,
-        icon="mdi:timer-outline",
     ),
     WaterSoftenerSensorDescription(
         key="leak_threshold",
         attr_key=ATTR_LEAK_THRESHOLD,
-        name="Anti-Leakage Threshold",
+        translation_key="leak_threshold",
         device_class=SensorDeviceClass.VOLUME,
         native_unit_of_measurement=UnitOfVolume.LITERS,
-        icon="mdi:water-alert-outline",
     ),
 )
 
@@ -138,7 +130,7 @@ class WaterSoftenerSensor(CoordinatorEntity[WaterSoftenerCoordinator], SensorEnt
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        self._attr_unique_id = f"{unique_id_prefix(entry)}_{description.key}"
         self._attr_device_info = build_device_info(entry)
 
     @property

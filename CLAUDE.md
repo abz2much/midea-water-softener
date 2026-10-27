@@ -66,7 +66,7 @@ Set commands use `SET_BODY_TYPE = 0x15` with the EDNewSetParamPack format:
 | regen_time | 0x0102 | 0 | hour \| (min<<8) |
 | regen_now | 0x0103 | 1 | 0 |
 
-In the Lua, the `addition` of `anti_leakage` (0x010A) carries the leak volume. The set unit is unknown, so no control writes it and we send 0.
+In the Lua, the `addition` of `anti_leakage` (0x010A) carries the leak volume, and `value` is the on/off state. The Anti-Leakage Limit number sends litres divided by `LEAK_LIMIT_SET_UNIT_L` (10, unconfirmed) in `addition` and the CURRENT on/off state in `value`; never send `value` 0 just to set a volume. The Lua gives no range or step (min 10 L, max 2550 L (one status byte of 10 L units), step 10 L are our own). The Anti-Leakage Reminder switch still sends `addition` 0.
 
 ## Cloud API (cloud.py / security.py)
 

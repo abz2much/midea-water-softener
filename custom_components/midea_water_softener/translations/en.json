@@ -44,5 +44,70 @@
         }
       }
     }
+  },
+  "entity": {
+    "binary_sensor": {
+      "leak_detected": {
+        "name": "Leak Detected"
+      }
+    },
+    "button": {
+      "regenerate_now": {
+        "name": "Regenerate Now"
+      }
+    },
+    "number": {
+      "hardness": {
+        "name": "Hardness Setting"
+      },
+      "leak_limit": {
+        "name": "Anti-Leakage Limit"
+      },
+      "regen_interval": {
+        "name": "Regeneration Interval"
+      }
+    },
+    "sensor": {
+      "soft_water_remaining": {
+        "name": "Remaining Soft Water"
+      },
+      "flow_rate": {
+        "name": "Flow Rate"
+      },
+      "salt_remaining": {
+        "name": "Remaining Salt"
+      },
+      "device_status": {
+        "name": "Device Status"
+      },
+      "water_consumption_total": {
+        "name": "Total Water Consumption"
+      },
+      "use_days": {
+        "name": "Days in Use"
+      },
+      "regen_seconds_remaining": {
+        "name": "Regeneration Time Remaining"
+      },
+      "leak_threshold": {
+        "name": "Anti-Leakage Threshold"
+      }
+    },
+    "switch": {
+      "soften": {
+        "name": "Soft Water"
+      },
+      "inlet": {
+        "name": "Inlet"
+      },
+      "anti_leakage": {
+        "name": "Anti-Leakage Reminder"
+      }
+    },
+    "time": {
+      "regen_time": {
+        "name": "Regeneration Time"
+      }
+    }
   }
 }

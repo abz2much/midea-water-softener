@@ -1,0 +1,62 @@
+{
+  "entity": {
+    "button": {
+      "regenerate_now": {
+        "default": "mdi:refresh"
+      }
+    },
+    "number": {
+      "hardness": {
+        "default": "mdi:water-minus"
+      },
+      "leak_limit": {
+        "default": "mdi:water-alert-outline"
+      },
+      "regen_interval": {
+        "default": "mdi:calendar-refresh"
+      }
+    },
+    "sensor": {
+      "soft_water_remaining": {
+        "default": "mdi:water-outline"
+      },
+      "flow_rate": {
+        "default": "mdi:water-pump"
+      },
+      "salt_remaining": {
+        "default": "mdi:shaker-outline"
+      },
+      "device_status": {
+        "default": "mdi:water-check"
+      },
+      "water_consumption_total": {
+        "default": "mdi:water-boiler"
+      },
+      "use_days": {
+        "default": "mdi:counter"
+      },
+      "regen_seconds_remaining": {
+        "default": "mdi:timer-outline"
+      },
+      "leak_threshold": {
+        "default": "mdi:water-alert-outline"
+      }
+    },
+    "switch": {
+      "soften": {
+        "default": "mdi:water-check"
+      },
+      "inlet": {
+        "default": "mdi:valve-open"
+      },
+      "anti_leakage": {
+        "default": "mdi:water-alert"
+      }
+    },
+    "time": {
+      "regen_time": {
+        "default": "mdi:clock-outline"
+      }
+    }
+  }
+}

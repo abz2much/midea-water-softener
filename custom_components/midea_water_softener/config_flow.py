@@ -41,6 +41,9 @@ STEP_USER_SCHEMA = vol.Schema(
 
 class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
+    # 2: entity unique IDs use the device ID. A minor bump, so an older release
+    # can still load the entry (see async_migrate_entry).
+    MINOR_VERSION = 2
 
     @staticmethod
     @callback

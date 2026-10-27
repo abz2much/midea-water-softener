@@ -12,7 +12,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import ATTR_LEAK_DETECTED
 from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
-from .device_info import build_device_info
+from .device_info import build_device_info, unique_id_prefix
 
 
 async def async_setup_entry(
@@ -28,7 +28,7 @@ class WaterSoftenerLeakSensor(
     CoordinatorEntity[WaterSoftenerCoordinator], BinarySensorEntity
 ):
     _attr_has_entity_name = True
-    _attr_name = "Leak Detected"
+    _attr_translation_key = "leak_detected"
     _attr_device_class = BinarySensorDeviceClass.MOISTURE
 
     def __init__(
@@ -37,7 +37,7 @@ class WaterSoftenerLeakSensor(
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator)
-        self._attr_unique_id = f"{entry.entry_id}_leak_detected"
+        self._attr_unique_id = f"{unique_id_prefix(entry)}_leak_detected"
         self._attr_device_info = build_device_info(entry)
 
     @property

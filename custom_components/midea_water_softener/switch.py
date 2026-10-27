@@ -16,7 +16,7 @@ from .const import (
     ATTR_SOFTEN,
 )
 from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
-from .device_info import build_device_info
+from .device_info import build_device_info, unique_id_prefix
 from .device import WaterSoftenerDevice
 
 
@@ -31,24 +31,21 @@ SWITCH_DESCRIPTIONS: tuple[WaterSoftenerSwitchDescription, ...] = (
     WaterSoftenerSwitchDescription(
         key="soften",
         attr_key=ATTR_SOFTEN,
-        name="Soft Water",
-        icon="mdi:water-check",
+        translation_key="soften",
         turn_on=lambda d: d.set_soften(True),
         turn_off=lambda d: d.set_soften(False),
     ),
     WaterSoftenerSwitchDescription(
         key="inlet",
         attr_key=ATTR_INLET,
-        name="Inlet",
-        icon="mdi:valve-open",
+        translation_key="inlet",
         turn_on=lambda d: d.set_inlet(True),
         turn_off=lambda d: d.set_inlet(False),
     ),
     WaterSoftenerSwitchDescription(
         key="anti_leakage",
         attr_key=ATTR_ANTI_LEAKAGE,
-        name="Anti-Leakage Reminder",
-        icon="mdi:water-alert",
+        translation_key="anti_leakage",
         turn_on=lambda d: d.set_anti_leakage(True),
         turn_off=lambda d: d.set_anti_leakage(False),
     ),
@@ -78,7 +75,7 @@ class WaterSoftenerSwitch(CoordinatorEntity[WaterSoftenerCoordinator], SwitchEnt
     ) -> None:
         super().__init__(coordinator)
         self.entity_description = description
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
+        self._attr_unique_id = f"{unique_id_prefix(entry)}_{description.key}"
         self._attr_device_info = build_device_info(entry)
 
     @property
