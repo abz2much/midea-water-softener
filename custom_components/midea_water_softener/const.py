@@ -1,6 +1,6 @@
 DOMAIN = "midea_water_softener"
 DEVICE_TYPE = 0xED
-QUERY_BODY_TYPE = 0x09
+QUERY_BODY_TYPE = 0x09  # expected body[0] in the *response* (used in parse_response)
 DEFAULT_SCAN_INTERVAL = 30  # seconds
 
 # Config/storage keys
