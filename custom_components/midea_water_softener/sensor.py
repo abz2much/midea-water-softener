@@ -18,7 +18,6 @@ from homeassistant.const import (
     UnitOfVolumeFlowRate,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -34,6 +33,7 @@ from .const import (
     DOMAIN,
 )
 from .coordinator import WaterSoftenerCoordinator
+from .device_info import build_device_info
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -135,12 +135,7 @@ class WaterSoftenerSensor(CoordinatorEntity[WaterSoftenerCoordinator], SensorEnt
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(entry.data["device_id"]))},
-            name=entry.data.get("device_name", "Water Softener"),
-            manufacturer="Midea",
-            model="QS2476-90",
-        )
+        self._attr_device_info = build_device_info(entry)
 
     @property
     def native_value(self) -> Any:

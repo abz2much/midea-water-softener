@@ -16,6 +16,8 @@ from .const import (
     CONF_ACCOUNT,
     CONF_DEVICE_ID,
     CONF_DEVICE_NAME,
+    CONF_MODEL,
+    CONF_SERIAL_NUMBER,
     CONF_SERVER,
     DEFAULT_SCAN_INTERVAL,
     DEVICE_TYPE,
@@ -107,21 +109,27 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "Water Softener",
             )
             scan_interval = user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+            appliance = next(
+                (a for a in self._appliances if a["device_id"] == device_id), {}
+            )
 
             await self.async_set_unique_id(str(device_id))
             self._abort_if_unique_id_configured()
 
-            return self.async_create_entry(
-                title=device_name,
-                data={
-                    CONF_ACCOUNT: self._account,
-                    CONF_PASSWORD: self._password,
-                    CONF_SERVER: self._server,
-                    CONF_DEVICE_ID: device_id,
-                    CONF_DEVICE_NAME: device_name,
-                    CONF_SCAN_INTERVAL: scan_interval,
-                },
-            )
+            data = {
+                CONF_ACCOUNT: self._account,
+                CONF_PASSWORD: self._password,
+                CONF_SERVER: self._server,
+                CONF_DEVICE_ID: device_id,
+                CONF_DEVICE_NAME: device_name,
+                CONF_SCAN_INTERVAL: scan_interval,
+            }
+            # The cloud already returns these; save them when it has them.
+            if appliance.get("model"):
+                data[CONF_MODEL] = appliance["model"]
+            if appliance.get("sn"):
+                data[CONF_SERIAL_NUMBER] = appliance["sn"]
+            return self.async_create_entry(title=device_name, data=data)
 
         schema = vol.Schema(
             {

@@ -9,6 +9,8 @@ CONF_PASSWORD = "password"
 CONF_SERVER = "server"
 CONF_DEVICE_ID = "device_id"
 CONF_DEVICE_NAME = "device_name"
+CONF_MODEL = "model"
+CONF_SERIAL_NUMBER = "serial_number"
 CONF_SCAN_INTERVAL = "scan_interval"
 
 # Server options presented in config flow
