@@ -8,7 +8,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .cloud import CannotConnect, InvalidAuth, MSmartHomeCloud, MSmartHomeError
@@ -27,7 +27,7 @@ from .const import (
     DOMAIN,
     SERVERS,
 )
-from .local import LocalError, LocalTransport
+from .local import LocalError, LocalTransport, LocalUnavailable, unavailable_reason
 from .message import build_query, parse_response
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,14 +58,20 @@ def _local_schema(host: str = "") -> vol.Schema:
 
 
 async def _async_find_local(
-    cloud: MSmartHomeCloud, device_id: int, host: str
+    hass: HomeAssistant, cloud: MSmartHomeCloud, device_id: int, host: str
 ) -> tuple[dict[str, str], str | None]:
     """Fetch the token and key from the cloud and test them on the softener.
 
     Returns the entry data to save, or an error key for the form.
     """
+    reason = await hass.async_add_executor_job(unavailable_reason)
+    if reason:
+        _LOGGER.warning("Local control is unavailable: %s", reason)
+        return {}, "local_unavailable"
     try:
         keys = await cloud.get_keys(device_id)
+    except LocalUnavailable:
+        return {}, "local_unavailable"
     except MSmartHomeError:
         return {}, "token_failed"
     if not keys:
@@ -76,6 +82,8 @@ async def _async_find_local(
         transport = LocalTransport(host, device_id, pair["token"], pair["key"])
         try:
             reply = await transport.send(build_query())
+        except LocalUnavailable:
+            return {}, "local_unavailable"
         except LocalError as exc:
             _LOGGER.debug("Local test failed: %s", exc)
             continue
@@ -207,7 +215,7 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not host:
                 return self.async_create_entry(title=title, data=self._entry_data)
             local_data, error = await _async_find_local(
-                self._cloud, self._entry_data[CONF_DEVICE_ID], host
+                self.hass, self._cloud, self._entry_data[CONF_DEVICE_ID], host
             )
             if error is None:
                 return self.async_create_entry(
@@ -252,7 +260,7 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
             else:
                 local_data, error = await _async_find_local(
-                    cloud, entry.data[CONF_DEVICE_ID], host
+                    self.hass, cloud, entry.data[CONF_DEVICE_ID], host
                 )
                 if error is None:
                     return self.async_update_reload_and_abort(

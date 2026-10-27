@@ -78,6 +78,7 @@ With local control, Home Assistant talks to the softener directly over your home
 - **The cloud is the fallback.** Every request goes local first. If the softener can't be reached (refused, timeout, failed handshake or no reply), that request goes through the cloud instead. The log shows one line when the integration switches to the cloud and one when local works again.
 - **Commands are never sent twice.** If a command was sent locally but no reply came back, the softener may already have acted on it, so it is not repeated through the cloud. Home Assistant shows an error instead. Status polls always fall back.
 - **Cloud down at startup:** with local control set up, the integration still starts if the cloud can't be reached. It logs in to the cloud later, when it first needs it.
+- **If the `midea-local` library can't be used** (missing, or changed by an update), local control turns itself off with one warning in the log, and the integration carries on using the cloud only.
 
 ### Add local control to an existing setup
 

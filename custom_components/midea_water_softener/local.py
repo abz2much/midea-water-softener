@@ -2,19 +2,17 @@
 
 Each request opens a connection, does the 8370 handshake with the token and
 key, sends one frame and closes. The crypto is midea-local's own.
+
+midea-local is imported on first use, not at module load. If it is missing or
+its API has changed, local control turns itself off (LocalUnavailable) and the
+integration carries on over the cloud.
 """
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import logging
-
-from midealocal.packet_builder import PacketBuilder
-from midealocal.security import (
-    MSGTYPE_ENCRYPTED_REQUEST,
-    MSGTYPE_HANDSHAKE_REQUEST,
-    LocalSecurity,
-)
+from types import SimpleNamespace
 
 from .message import MessageType
 
@@ -29,6 +27,10 @@ _MIN_HANDSHAKE_REPLY = 72
 _HEARTBEAT_TYPES = (0x0001, 0x1001)
 # A packet shorter than this has no encrypted frame in it.
 _MIN_PACKET_LENGTH = 56
+# Errors that mean midea-local's API is not what this code expects.
+_API_ERRORS = (AttributeError, TypeError, NameError, ImportError)
+
+_lib: SimpleNamespace | None = None
 
 
 class LocalError(Exception):
@@ -41,6 +43,63 @@ class LocalNotSent(LocalError):
 
 class LocalNoReply(LocalError):
     """The frame was sent, but no reply came back."""
+
+
+class LocalUnavailable(LocalError):
+    """midea-local is missing or its API has changed. Local control is off.
+
+    `sent` says whether the frame had already left when it broke.
+    """
+
+    def __init__(self, message: str, *, sent: bool = False) -> None:
+        super().__init__(message)
+        self.sent = sent
+
+
+def _midea_local() -> SimpleNamespace:
+    """Import the parts of midea-local we use, once. Blocking: disk access."""
+    global _lib
+    if _lib is None:
+        try:
+            from midealocal.packet_builder import PacketBuilder
+            from midealocal.security import (
+                MSGTYPE_ENCRYPTED_REQUEST,
+                MSGTYPE_HANDSHAKE_REQUEST,
+                CloudSecurity,
+                LocalSecurity,
+            )
+        except Exception as exc:  # noqa: BLE001 - any broken install turns local off
+            raise LocalUnavailable(
+                f"midea-local cannot be imported ({type(exc).__name__}: {exc})"
+            ) from None
+        _lib = SimpleNamespace(
+            PacketBuilder=PacketBuilder,
+            CloudSecurity=CloudSecurity,
+            LocalSecurity=LocalSecurity,
+            MSGTYPE_ENCRYPTED_REQUEST=MSGTYPE_ENCRYPTED_REQUEST,
+            MSGTYPE_HANDSHAKE_REQUEST=MSGTYPE_HANDSHAKE_REQUEST,
+        )
+    return _lib
+
+
+def unavailable_reason() -> str | None:
+    """Why midea-local can't be used, or None if it can. Run in an executor."""
+    try:
+        _midea_local()
+    except LocalUnavailable as exc:
+        return str(exc)
+    return None
+
+
+def udp_id(device_id: int, method: int) -> str | None:
+    """midea-local's udpid for the cloud getToken call."""
+    lib = _midea_local()
+    try:
+        return lib.CloudSecurity.get_udp_id(device_id, method)
+    except _API_ERRORS as exc:
+        raise LocalUnavailable(
+            f"midea-local API has changed ({type(exc).__name__}: {exc})"
+        ) from None
 
 
 class LocalTransport:
@@ -69,20 +128,24 @@ class LocalTransport:
     async def send(self, frame: bytes) -> bytes:
         """Send one frame and return the device's reply frame.
 
-        Raises LocalNotSent if the frame never left, and LocalNoReply if it
-        was sent but nothing came back in time.
+        Raises LocalNotSent if the frame never left, LocalNoReply if it was
+        sent but nothing came back in time, and LocalUnavailable if
+        midea-local can't be used.
         """
         async with self._lock:
             return await self._send(frame)
 
     async def _send(self, frame: bytes) -> bytes:
+        lib = _midea_local()
         sent = False
         writer: asyncio.StreamWriter | None = None
         try:
             async with asyncio.timeout(self.timeout):
                 reader, writer = await asyncio.open_connection(self.host, self.port)
-                security = LocalSecurity()
-                writer.write(security.encode_8370(self._token, MSGTYPE_HANDSHAKE_REQUEST))
+                security = lib.LocalSecurity()
+                writer.write(
+                    security.encode_8370(self._token, lib.MSGTYPE_HANDSHAKE_REQUEST)
+                )
                 await writer.drain()
                 response = await reader.read(512)
                 if len(response) < _MIN_HANDSHAKE_REPLY:
@@ -91,13 +154,17 @@ class LocalTransport:
                     )
                 security.tcp_key(response[8:72], self._key)
 
-                packet = PacketBuilder(self._device_id, frame).finalize()
-                writer.write(security.encode_8370(packet, MSGTYPE_ENCRYPTED_REQUEST))
+                packet = lib.PacketBuilder(self._device_id, frame).finalize()
+                writer.write(security.encode_8370(packet, lib.MSGTYPE_ENCRYPTED_REQUEST))
                 await writer.drain()
                 sent = True
                 return await self._read_reply(reader, security)
         except LocalError:
             raise
+        except _API_ERRORS as exc:
+            raise LocalUnavailable(
+                f"midea-local API has changed ({type(exc).__name__}: {exc})", sent=sent
+            ) from None
         except Exception as exc:  # noqa: BLE001 - every failure maps to one of the two
             # Timeouts, socket errors, midea-local errors and malformed packets
             # alike: what matters to the caller is whether the frame left.
@@ -113,7 +180,7 @@ class LocalTransport:
                     await writer.wait_closed()
 
     async def _read_reply(
-        self, reader: asyncio.StreamReader, security: LocalSecurity
+        self, reader: asyncio.StreamReader, security
     ) -> bytes:
         """Read until a reply frame arrives. Skip heartbeats and status reports."""
         buffer = b""

@@ -14,8 +14,8 @@ from typing import Awaitable, Callable
 from secrets import token_hex
 
 import aiohttp
-from midealocal.security import CloudSecurity
 
+from .local import udp_id as local_udp_id
 from .security import MSmartSecurity
 
 _LOGGER = logging.getLogger(__name__)
@@ -337,11 +337,12 @@ class MSmartHomeCloud:
 
         Mirrors midea-local's getToken call: one request per udpid method (1
         and 2). Which pair works is only known by trying it on the device, so
-        all matching pairs are returned, method 1 first.
+        all matching pairs are returned, method 1 first. Raises
+        LocalUnavailable if midea-local can't be used.
         """
         keys: list[dict[str, str]] = []
         for method in (1, 2):
-            udp_id = CloudSecurity.get_udp_id(device_id, method)
+            udp_id = local_udp_id(device_id, method)
 
             async def build(udp_id: str | None = udp_id) -> dict | None:
                 data = self._make_general_data()

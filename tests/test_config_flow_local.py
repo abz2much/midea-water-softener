@@ -311,7 +311,7 @@ def test_every_new_form_string_is_translated():
         assert en["step"][step]["description"]
         assert en["step"][step]["data"]["host"]
         assert en["step"][step]["data_description"]["host"]
-    for error in ("token_failed", "local_failed"):
+    for error in ("token_failed", "local_failed", "local_unavailable"):
         assert en["error"][error]
     assert en["abort"]["reconfigure_successful"]
 

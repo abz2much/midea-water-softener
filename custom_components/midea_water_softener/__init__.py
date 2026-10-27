@@ -23,7 +23,7 @@ from .const import (
 )
 from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
 from .device import WaterSoftenerDevice
-from .local import LocalTransport
+from .local import LocalTransport, unavailable_reason
 from .migration import async_migrate_unique_ids
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,9 +71,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: WaterSoftenerConfigEntry
     # Local control needs all three; without them the integration is cloud only.
     local: LocalTransport | None = None
     if all(entry.data.get(k) for k in (CONF_HOST, CONF_TOKEN, CONF_KEY)):
-        local = LocalTransport(
-            entry.data[CONF_HOST], device_id, entry.data[CONF_TOKEN], entry.data[CONF_KEY]
-        )
+        # The first import of midea-local reads from disk: keep it off the loop.
+        reason = await hass.async_add_executor_job(unavailable_reason)
+        if reason:
+            _LOGGER.warning(
+                "Local control for %s is off (%s); using the cloud only",
+                device_name,
+                reason,
+            )
+        else:
+            local = LocalTransport(
+                entry.data[CONF_HOST],
+                device_id,
+                entry.data[CONF_TOKEN],
+                entry.data[CONF_KEY],
+            )
 
     domain_data = hass.data.setdefault(DOMAIN, {})
     cloud_key = entry.entry_id + _CLOUD_SUFFIX

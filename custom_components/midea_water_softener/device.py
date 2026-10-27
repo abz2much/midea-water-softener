@@ -30,7 +30,7 @@ from .const import (
     STATUS_REGENERATING,
     STATUS_STANDBY,
 )
-from .local import LocalNoReply, LocalNotSent, LocalTransport
+from .local import LocalNoReply, LocalNotSent, LocalTransport, LocalUnavailable
 from .message import (
     DeviceStatus,
     build_query,
@@ -117,6 +117,16 @@ class WaterSoftenerDevice:
         else:
             _LOGGER.info("[%s] Local connection works again; using local", self.name)
 
+    def _disable_local(self, reason: str) -> None:
+        """midea-local can't be used: turn local off for good, with one WARNING."""
+        self._local = None
+        self._mode = _MODE_CLOUD
+        _LOGGER.warning(
+            "[%s] Local control is off, midea-local cannot be used (%s); using the cloud only",
+            self.name,
+            reason,
+        )
+
     async def _request(self, message: bytes, *, write: bool) -> bytearray | None:
         """Send one frame: local first, then the cloud.
 
@@ -128,6 +138,12 @@ class WaterSoftenerDevice:
                 reply = await self._local.send(message)
             except LocalNotSent as exc:
                 self._set_mode(_MODE_CLOUD, str(exc))
+            except LocalUnavailable as exc:
+                self._disable_local(str(exc))
+                if write and exc.sent:
+                    raise HomeAssistantError(
+                        f"{self.name} did not confirm the command over the local network"
+                    ) from exc
             except LocalNoReply as exc:
                 self._set_mode(_MODE_CLOUD, str(exc))
                 if write:
