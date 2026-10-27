@@ -14,9 +14,8 @@ from .const import (
     ATTR_ANTI_LEAKAGE,
     ATTR_INLET,
     ATTR_SOFTEN,
-    DOMAIN,
 )
-from .coordinator import WaterSoftenerCoordinator
+from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
 from .device_info import build_device_info
 from .device import WaterSoftenerDevice
 
@@ -58,10 +57,10 @@ SWITCH_DESCRIPTIONS: tuple[WaterSoftenerSwitchDescription, ...] = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: WaterSoftenerConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    coordinator: WaterSoftenerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_entities(
         WaterSoftenerSwitch(coordinator, entry, desc) for desc in SWITCH_DESCRIPTIONS
     )

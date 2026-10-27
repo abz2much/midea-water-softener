@@ -66,3 +66,6 @@ class WaterSoftenerCoordinator(DataUpdateCoordinator[dict]):
             )
 
         return data
+
+
+type WaterSoftenerConfigEntry = ConfigEntry[WaterSoftenerCoordinator]

@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.loader import async_get_integration
 
@@ -15,6 +14,7 @@ from .const import (
     CONF_SERIAL_NUMBER,
     DOMAIN,
 )
+from .coordinator import WaterSoftenerConfigEntry
 
 TO_REDACT = {
     CONF_ACCOUNT,
@@ -31,9 +31,9 @@ TO_REDACT = {
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: WaterSoftenerConfigEntry
 ) -> dict[str, Any]:
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     integration = await async_get_integration(hass, DOMAIN)
     return {
         "integration_version": integration.version.string

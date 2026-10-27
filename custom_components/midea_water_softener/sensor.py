@@ -30,12 +30,11 @@ from .const import (
     ATTR_SOFT_WATER_REMAINING,
     ATTR_USE_DAYS,
     ATTR_WATER_CONSUMPTION_TOTAL,
-    DOMAIN,
     STATUS_NORMAL,
     STATUS_REGENERATING,
     STATUS_STANDBY,
 )
-from .coordinator import WaterSoftenerCoordinator
+from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
 from .device_info import build_device_info
 
 
@@ -118,10 +117,10 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: WaterSoftenerConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    coordinator: WaterSoftenerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_entities(
         WaterSoftenerSensor(coordinator, entry, desc) for desc in SENSOR_DESCRIPTIONS
     )

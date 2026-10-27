@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
@@ -19,7 +18,7 @@ from .const import (
     DOMAIN,
     SERVERS,
 )
-from .coordinator import WaterSoftenerCoordinator
+from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
 from .device import WaterSoftenerDevice
 
 _LOGGER = logging.getLogger(__name__)
@@ -33,13 +32,12 @@ PLATFORMS: list[Platform] = [
     Platform.BUTTON,
 ]
 
-# hass.data[DOMAIN] stores two keys per entry:
-#   entry.entry_id        → WaterSoftenerCoordinator
+# The coordinator is in entry.runtime_data. hass.data[DOMAIN] only keeps
 #   entry.entry_id + ".cloud" → MSmartHomeCloud (persists across setup retries)
 _CLOUD_SUFFIX = ".cloud"
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: WaterSoftenerConfigEntry) -> bool:
     account = entry.data[CONF_ACCOUNT]
     password = entry.data[CONF_PASSWORD]
     server = entry.data[CONF_SERVER]
@@ -77,16 +75,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await coordinator.async_config_entry_first_refresh()
 
-    domain_data[entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: WaterSoftenerConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         domain_data = hass.data.get(DOMAIN, {})
-        domain_data.pop(entry.entry_id, None)
         domain_data.pop(entry.entry_id + _CLOUD_SUFFIX, None)
     return unloaded

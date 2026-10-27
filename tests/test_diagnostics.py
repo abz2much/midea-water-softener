@@ -57,7 +57,7 @@ async def _diagnostics(hass, entry, coordinator):
     )
 
     entry.add_to_hass(hass)
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    entry.runtime_data = coordinator
     return await async_get_config_entry_diagnostics(hass, entry)
 
 
