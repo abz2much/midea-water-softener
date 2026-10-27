@@ -37,7 +37,7 @@ Custom Home Assistant integration for the **Midea QS2476-90** water softener (9 
 
 ## Requirements
 
-- Home Assistant 2024.1 or newer
+- Home Assistant 2025.8 or newer
 - A **MSmartHome** account with the water softener already added in the app
 - The `pycryptodome` Python package (installed automatically)
 
