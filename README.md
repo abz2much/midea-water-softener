@@ -63,3 +63,12 @@ Custom Home Assistant integration for the **Midea QS2476-90** water softener (9 
 - The integration polls the MSmartHome cloud. A stable internet connection is required; local LAN communication is not supported.
 - All write operations (switches, numbers, time, button) send commands through the cloud and trigger an immediate poll to refresh state.
 - The session is established once at startup and reused across poll cycles. If the session expires the integration will re-authenticate automatically on the next request failure.
+
+## Credits
+
+The cloud login and message protocol in this integration are based on:
+
+- [sususweet/midea_auto_cloud](https://github.com/sususweet/midea_auto_cloud) (Apache-2.0)
+- [georgezhao2010/midea_ac_lan](https://github.com/georgezhao2010/midea_ac_lan) (MIT)
+
+This is an unofficial integration. It is not affiliated with, endorsed by or supported by Midea.

@@ -1,11 +1,12 @@
 {
   "domain": "midea_water_softener",
   "name": "Midea Water Softener",
+  "documentation": "https://github.com/abz2much/midea-water-softener",
+  "issue_tracker": "https://github.com/abz2much/midea-water-softener/issues",
   "version": "1.0.0",
   "config_flow": true,
   "requirements": ["pycryptodome>=3.0"],
   "dependencies": [],
-  "codeowners": [],
-  "iot_class": "cloud_polling",
-  "hacs": "https://github.com/YOUR_REPO/midea_water_softener"
+  "codeowners": ["@abz2much"],
+  "iot_class": "cloud_polling"
 }
