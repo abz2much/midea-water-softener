@@ -175,7 +175,7 @@ class MSmartHomeCloud:
             return {"no_reply": True}
 
         if "/transparent/send" in endpoint:
-            _LOGGER.warning("transparent/send error: code=%s full_response=%s", body.get("code"), body)
+            _LOGGER.warning("transparent/send error: code=%s msg=%s", body.get("code"), body.get("msg"))
         else:
             _LOGGER.debug("API error from %s: code=%s msg=%s", endpoint, body.get("code"), body.get("msg"))
         return None
