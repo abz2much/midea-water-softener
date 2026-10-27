@@ -7,17 +7,16 @@ from typing import Any, Callable, Coroutine
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     ATTR_ANTI_LEAKAGE,
     ATTR_INLET,
     ATTR_SOFTEN,
-    DOMAIN,
 )
-from .coordinator import WaterSoftenerCoordinator
+from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
+from .device_info import build_device_info
 from .device import WaterSoftenerDevice
 
 
@@ -58,10 +57,10 @@ SWITCH_DESCRIPTIONS: tuple[WaterSoftenerSwitchDescription, ...] = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: WaterSoftenerConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    coordinator: WaterSoftenerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_entities(
         WaterSoftenerSwitch(coordinator, entry, desc) for desc in SWITCH_DESCRIPTIONS
     )
@@ -80,12 +79,7 @@ class WaterSoftenerSwitch(CoordinatorEntity[WaterSoftenerCoordinator], SwitchEnt
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(entry.data["device_id"]))},
-            name=entry.data.get("device_name", "Water Softener"),
-            manufacturer="Midea",
-            model="QS2476-90",
-        )
+        self._attr_device_info = build_device_info(entry)
 
     @property
     def is_on(self) -> bool | None:

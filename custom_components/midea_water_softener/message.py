@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from enum import IntEnum
 
-DEVICE_TYPE = 0xED
-QUERY_BODY_TYPE = 0x09   # expected body[0] in the *response* (used in parse_response)
+from .const import DEVICE_TYPE, QUERY_BODY_TYPE
+
 _QUERY_CMD_BODY_TYPE = 0x01  # body[0] sent in the outgoing query (Lua: bodyBytes[0]=0x01)
 SET_BODY_TYPE = 0x15  # new-style ED set message, same family as water purifier
 

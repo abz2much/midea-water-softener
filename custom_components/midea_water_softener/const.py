@@ -1,6 +1,6 @@
 DOMAIN = "midea_water_softener"
 DEVICE_TYPE = 0xED
-QUERY_BODY_TYPE = 0x09
+QUERY_BODY_TYPE = 0x09  # expected body[0] in the *response* (used in parse_response)
 DEFAULT_SCAN_INTERVAL = 30  # seconds
 
 # Config/storage keys
@@ -9,6 +9,8 @@ CONF_PASSWORD = "password"
 CONF_SERVER = "server"
 CONF_DEVICE_ID = "device_id"
 CONF_DEVICE_NAME = "device_name"
+CONF_MODEL = "model"
+CONF_SERIAL_NUMBER = "serial_number"
 CONF_SCAN_INTERVAL = "scan_interval"
 
 # Server options presented in config flow

@@ -18,8 +18,7 @@ from homeassistant.const import (
     UnitOfVolumeFlowRate,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -31,9 +30,12 @@ from .const import (
     ATTR_SOFT_WATER_REMAINING,
     ATTR_USE_DAYS,
     ATTR_WATER_CONSUMPTION_TOTAL,
-    DOMAIN,
+    STATUS_NORMAL,
+    STATUS_REGENERATING,
+    STATUS_STANDBY,
 )
-from .coordinator import WaterSoftenerCoordinator
+from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
+from .device_info import build_device_info
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -72,6 +74,8 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
         key="device_status",
         attr_key=ATTR_DEVICE_STATUS,
         name="Device Status",
+        device_class=SensorDeviceClass.ENUM,
+        options=[STATUS_NORMAL, STATUS_STANDBY, STATUS_REGENERATING],
         icon="mdi:water-check",
     ),
     WaterSoftenerSensorDescription(
@@ -113,10 +117,10 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: WaterSoftenerConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    coordinator: WaterSoftenerCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator = entry.runtime_data
     async_add_entities(
         WaterSoftenerSensor(coordinator, entry, desc) for desc in SENSOR_DESCRIPTIONS
     )
@@ -135,12 +139,7 @@ class WaterSoftenerSensor(CoordinatorEntity[WaterSoftenerCoordinator], SensorEnt
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, str(entry.data["device_id"]))},
-            name=entry.data.get("device_name", "Water Softener"),
-            manufacturer="Midea",
-            model="QS2476-90",
-        )
+        self._attr_device_info = build_device_info(entry)
 
     @property
     def native_value(self) -> Any:

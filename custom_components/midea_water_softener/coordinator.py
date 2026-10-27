@@ -5,6 +5,7 @@ import logging
 import traceback
 from datetime import timedelta
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -20,12 +21,14 @@ class WaterSoftenerCoordinator(DataUpdateCoordinator[dict]):
     def __init__(
         self,
         hass: HomeAssistant,
+        config_entry: ConfigEntry,
         device: WaterSoftenerDevice,
         scan_interval: int = DEFAULT_SCAN_INTERVAL,
     ) -> None:
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name=f"{DOMAIN}_{device.name}",
             update_interval=timedelta(seconds=scan_interval),
         )
@@ -63,3 +66,6 @@ class WaterSoftenerCoordinator(DataUpdateCoordinator[dict]):
             )
 
         return data
+
+
+type WaterSoftenerConfigEntry = ConfigEntry[WaterSoftenerCoordinator]
