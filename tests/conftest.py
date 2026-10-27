@@ -10,6 +10,7 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
 from custom_components.midea_water_softener.cloud import MSmartHomeCloud
+from custom_components.midea_water_softener.message import MessageType, _build_message
 from custom_components.midea_water_softener.security import MSmartSecurity
 
 ROUTER = "/v1/unitcenter/router/user/name"
@@ -124,3 +125,16 @@ def make_cloud():
         return MSmartHomeCloud(session, "user@example.com", "fake-password")
 
     return _make
+
+
+def status_packet(set_bytes: dict[int, int] | None = None, body_len: int = 53) -> bytes:
+    """A device status packet (query response) with `body_len` body bytes.
+
+    `set_bytes` maps a body index to a value; every other body byte is 0.
+    The body starts with the 0x09 response body type, as the device sends it.
+    """
+    body = bytearray(body_len)
+    body[0] = 0x09
+    for index, value in (set_bytes or {}).items():
+        body[index] = value
+    return _build_message(MessageType.query, None, body)

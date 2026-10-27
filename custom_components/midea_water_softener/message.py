@@ -14,6 +14,9 @@ SET_BODY_TYPE = 0x15  # new-style ED set message, same family as water purifier
 
 HEADER_LENGTH = 10
 
+# Lua: leak_water_protection_value (byte18) is in units of 10 L.
+_LEAK_THRESHOLD_UNIT_L = 10
+
 
 class MessageType(IntEnum):
     set = 0x02
@@ -146,6 +149,7 @@ class DeviceStatus:
         "standby",
         "regenerating",
         "leak_detected",
+        "leak_threshold",
         "error",
     )
 
@@ -187,6 +191,7 @@ def parse_response(raw: bytes | bytearray) -> DeviceStatus | None:
     s.soft_water_remaining  = body[3]  + (body[4]  << 8)    # byte13+14: soft_available, L
     s.water_consumption_raw = body[5]  + (body[6]  << 8)    # byte15+16: water_consumption, 100L units
     s.salt_remaining        = body[7]                        # byte17: left_salt, %
+    s.leak_threshold        = body[8] * _LEAK_THRESHOLD_UNIT_L  # byte18: leak_water_protection_value, 10 L units → L
     s.water_hardness        = body[11] + (body[12] << 8)    # byte21+22: water_hardness, ppm (LE)
     s.regen_interval        = body[13]                       # byte23: flushing_days
     s.regen_hour            = body[14]                       # byte24: timing_regeneration_hour

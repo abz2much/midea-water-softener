@@ -25,6 +25,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import (
     ATTR_DEVICE_STATUS,
     ATTR_FLOW_RATE,
+    ATTR_LEAK_THRESHOLD,
     ATTR_REGEN_SECONDS_REMAINING,
     ATTR_SALT_REMAINING,
     ATTR_SOFT_WATER_REMAINING,
@@ -45,7 +46,7 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
         key="soft_water_remaining",
         attr_key=ATTR_SOFT_WATER_REMAINING,
         name="Remaining Soft Water",
-        device_class=SensorDeviceClass.VOLUME,
+        device_class=SensorDeviceClass.VOLUME_STORAGE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfVolume.LITERS,
         icon="mdi:water-outline",
@@ -98,6 +99,14 @@ SENSOR_DESCRIPTIONS: tuple[WaterSoftenerSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTime.SECONDS,
         icon="mdi:timer-outline",
+    ),
+    WaterSoftenerSensorDescription(
+        key="leak_threshold",
+        attr_key=ATTR_LEAK_THRESHOLD,
+        name="Anti-Leakage Threshold",
+        device_class=SensorDeviceClass.VOLUME,
+        native_unit_of_measurement=UnitOfVolume.LITERS,
+        icon="mdi:water-alert-outline",
     ),
 )
 
