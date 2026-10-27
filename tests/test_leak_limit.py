@@ -108,5 +108,12 @@ def test_the_description():
     assert d.key == "leak_limit"
     assert d.translation_key == "leak_limit"
     assert d.entity_category == EntityCategory.CONFIG
-    assert (d.native_min_value, d.native_max_value, d.native_step) == (10, 5000, 10)
+    assert (d.native_min_value, d.native_max_value, d.native_step) == (10, 2550, 10)
     assert d.native_unit_of_measurement == "L"
+
+
+def test_the_maximum_is_what_one_status_byte_can_read_back():
+    # The status carries the limit in one byte, in units of 10 L: 255 * 10 = 2550 L.
+    from custom_components.midea_water_softener.number import LEAK_LIMIT_DESCRIPTION as d
+
+    assert d.native_max_value == 255 * 10 == 2550

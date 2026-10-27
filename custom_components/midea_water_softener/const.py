@@ -18,9 +18,11 @@ CONF_SCAN_INTERVAL = "scan_interval"
 # byte is in units of 10 L (Lua:416) and the Lua writes the same property back with
 # no scaling, so 10 L is assumed here. Needs a real-device test before release.
 LEAK_LIMIT_SET_UNIT_L = 10
-# The Lua states no range or step. These are our own limits.
+# The Lua states no range or step. These are our own limits. The maximum is the
+# most the status can read back: the status byte holds the limit in units of
+# 10 L, and one byte tops out at 255 * 10 = 2550 L.
 LEAK_LIMIT_MIN_L = 10
-LEAK_LIMIT_MAX_L = 5000
+LEAK_LIMIT_MAX_L = 2550
 LEAK_LIMIT_STEP_L = 10
 
 # Server options presented in config flow

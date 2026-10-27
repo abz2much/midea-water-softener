@@ -31,7 +31,7 @@ Custom Home Assistant integration for the **Midea QS2476-90** water softener (9 
 | Inlet | Switch | Open or close the water inlet valve |
 | Anti-Leakage Reminder | Switch | Enable or disable the leakage alert feature |
 | Hardness Setting | Number (0–2000 ppm, step 5) | Set target water hardness |
-| Anti-Leakage Limit | Number (10–5000 L, step 10) | Set the leak volume. Shown under Configuration |
+| Anti-Leakage Limit | Number (10–2550 L, step 10) | Set the leak volume. Shown under Configuration |
 | Regeneration Interval | Number (1–99 days) | Days between scheduled regeneration cycles |
 | Regeneration Time | Time | Daily time at which scheduled regeneration runs |
 | Regenerate Now | Button | Trigger an immediate regeneration cycle |
