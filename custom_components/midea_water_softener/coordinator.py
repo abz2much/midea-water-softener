@@ -6,8 +6,10 @@ import traceback
 from datetime import timedelta
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .cloud import CannotConnect, InvalidAuth, SessionExpired
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 from .device import WaterSoftenerDevice
 
@@ -35,6 +37,10 @@ class WaterSoftenerCoordinator(DataUpdateCoordinator[dict]):
         )
         try:
             data = await self.device.refresh_status()
+        except (CannotConnect, SessionExpired) as exc:
+            raise UpdateFailed(f"Cannot reach the Midea cloud: {exc}") from None
+        except InvalidAuth as exc:
+            raise ConfigEntryAuthFailed("Midea login failed: check your password") from exc
         except Exception:
             _LOGGER.error(
                 "[%s] Unexpected exception during refresh_status:\n%s",

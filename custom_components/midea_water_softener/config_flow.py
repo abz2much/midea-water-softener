@@ -9,7 +9,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .cloud import MSmartHomeCloud
+from .cloud import CannotConnect, InvalidAuth, MSmartHomeCloud
 from .const import (
     CONF_ACCOUNT,
     CONF_DEVICE_ID,
@@ -55,8 +55,12 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             session = async_get_clientsession(self.hass)
             cloud = MSmartHomeCloud(session, self._account, self._password, api_url)
 
-            if not await cloud.login():
+            try:
+                await cloud.login()
+            except InvalidAuth:
                 errors["base"] = "invalid_auth"
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
             else:
                 from .const import DEVICE_TYPE
                 all_appliances = await cloud.list_appliances()

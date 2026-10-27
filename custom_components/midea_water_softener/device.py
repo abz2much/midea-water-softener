@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import logging
 
-from .cloud import MSmartHomeCloud
+from homeassistant.exceptions import HomeAssistantError
+
+from .cloud import MSmartHomeCloud, MSmartHomeError
 from .const import (
     ATTR_ANTI_LEAKAGE,
     ATTR_DEVICE_STATUS,
@@ -138,6 +140,12 @@ class WaterSoftenerDevice:
         await self._send(build_regen_now())
 
     async def _send(self, message: bytes) -> None:
-        result = await self._cloud.send_command(self._device_id, message)
+        try:
+            result = await self._cloud.send_command(self._device_id, message)
+        except MSmartHomeError as exc:
+            raise HomeAssistantError(
+                f"Could not send the command to {self.name}: {exc}"
+            ) from exc
         if result is None:
             _LOGGER.warning("[%s] Command send failed or no reply", self._device_id)
+            raise HomeAssistantError(f"Could not send the command to {self.name}")
