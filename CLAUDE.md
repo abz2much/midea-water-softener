@@ -34,23 +34,24 @@ custom_components/midea_water_softener/
 
 ## Protocol (message.py)
 
-Byte indices below are Lua 1-indexed converted to Python 0-indexed (`byteN → body[N-1]`):
+Byte indices below are Lua 1-indexed converted to Python 0-indexed (`byteN → body[N-10]`). `body[0]` is the response body type (`0x09`). `parse_response` rejects bodies shorter than 21 bytes.
 
 | Field | Body offset | Formula |
 |---|---|---|
-| `flow_rate` | body[11] | byte12 |
-| `soft_water_remaining` | body[12:14] | (body[13]<<8)+body[12] |
-| `water_consumption_raw` | body[14:16] | (body[15]<<8)+body[14], units unconfirmed |
-| `salt_remaining` | body[16] | byte17 (%) |
-| `salt_days_remaining` | body[18:20] | (body[19]<<8)+body[18] |
-| `water_hardness` | body[20:22] | (body[21]<<8)+body[20], ppm |
-| `regen_interval` | body[22] | days |
-| `regen_hour/min` | body[23], body[24] | |
-| `regen_seconds_remaining` | body[25:27] | |
-| `water_consumption_total` | body[30:34] | 32-bit LE, in L |
-| `water_consumption_daily_avg` | body[42:44] | |
-| `flags` | body[60] | bit0=soften, bit2=anti_leakage, bit3=leak, bit4=inlet, bit5=standby, bit7=regenerating |
-| `error` | body[61] | |
+| `flow_rate` | body[2] | byte12, L/min |
+| `soft_water_remaining` | body[3:5] | body[3] + (body[4]<<8), L; replaced by the 32-bit value at body[21:25] when the body has 25+ bytes |
+| `water_consumption_raw` | body[5:7] | body[5] + (body[6]<<8), 100 L units (not in the coordinator data) |
+| `salt_remaining` | body[7] | byte17 (%) |
+| `leak_threshold` | body[8] | body[8] * 10, L (Lua unit is 10 L) |
+| `water_hardness` | body[11:13] | body[11] + (body[12]<<8), ppm |
+| `regen_interval` | body[13] | days |
+| `regen_hour/min` | body[14], body[15] | |
+| `regen_seconds_remaining` | body[16:18] | body[16] + (body[17]<<8) |
+| `use_days` | body[18:20] | body[18] + (body[19]<<8) |
+| `soft_water_remaining` (32-bit) | body[21:25] | 32-bit LE, in L |
+| `water_consumption_total` | body[25:29] | 32-bit LE, in L |
+| `flags` | body[51] | bit0=soften, bit2=anti_leakage, bit3=leak_detected, bit4=inlet, bit5=standby, bit7=regenerating |
+| `error` | body[52] | raw code; the Lua has no table of meanings |
 
 Set commands use `SET_BODY_TYPE = 0x15` with the EDNewSetParamPack format:
 `[param_low, param_high, value, addition_low, addition_high]` prefixed by `[0x01, 0x01]`.
@@ -64,6 +65,8 @@ Set commands use `SET_BODY_TYPE = 0x15` with the EDNewSetParamPack format:
 | regen_interval | 0x0101 | 0 | days |
 | regen_time | 0x0102 | 0 | hour \| (min<<8) |
 | regen_now | 0x0103 | 1 | 0 |
+
+In the Lua, the `addition` of `anti_leakage` (0x010A) carries the leak volume. The set unit is unknown, so no control writes it and we send 0.
 
 ## Cloud API (cloud.py / security.py)
 
