@@ -65,6 +65,8 @@ Custom Home Assistant integration for the **Midea QS2476-90** water softener (9 
 5. Choose your device from the list of discovered appliances.
 6. Optionally adjust the poll interval (10–300 seconds, default 30 s).
 
+To change the poll interval later, open the integration and choose **Configure**. If your Midea password changes, Home Assistant asks for the new one. Enter it there; you do not need to set up the integration again.
+
 ## Notes
 
 - The integration polls the MSmartHome cloud. A stable internet connection is required; local LAN communication is not supported.
