@@ -9,6 +9,9 @@
       "hardness": {
         "default": "mdi:water-minus"
       },
+      "leak_limit": {
+        "default": "mdi:water-alert-outline"
+      },
       "regen_interval": {
         "default": "mdi:calendar-refresh"
       }

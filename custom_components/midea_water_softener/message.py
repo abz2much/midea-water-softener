@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from enum import IntEnum
 
-from .const import DEVICE_TYPE, QUERY_BODY_TYPE
+from .const import DEVICE_TYPE, LEAK_LIMIT_SET_UNIT_L, QUERY_BODY_TYPE
 
 _QUERY_CMD_BODY_TYPE = 0x01  # body[0] sent in the outgoing query (Lua: bodyBytes[0]=0x01)
 SET_BODY_TYPE = 0x15  # new-style ED set message, same family as water purifier
@@ -107,6 +107,14 @@ def build_set_inlet(on: bool) -> bytes:
 
 def build_set_anti_leakage(on: bool) -> bytes:
     return build_set(SetParam.ANTI_LEAKAGE, 0x01 if on else 0x00)
+
+def build_set_leak_limit(protection_on: bool, volume_l: int) -> bytes:
+    """Set the leak volume. `value` must carry the CURRENT protection state:
+    sending 0 here would switch the protection off."""
+    addition = round(volume_l / LEAK_LIMIT_SET_UNIT_L)
+    if not 0 < addition <= 0xFFFF:
+        raise ValueError(f"Leak limit {volume_l} L does not fit the set command")
+    return build_set(SetParam.ANTI_LEAKAGE, 0x01 if protection_on else 0x00, addition)
 
 def build_set_hardness(ppm: int) -> bytes:
     # ppm fits in 16 bits; pass as addition, value byte unused (0x00)

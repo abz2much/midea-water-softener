@@ -57,6 +57,7 @@ async def setup_entry(hass, make_session, entry):
 EXPECTED = {
     "binary_sensor.test_softener_leak_detected": ("Test softener Leak Detected", "leak_detected"),
     "button.test_softener_regenerate_now": ("Test softener Regenerate Now", "regenerate_now"),
+    "number.test_softener_anti_leakage_limit": ("Test softener Anti-Leakage Limit", "leak_limit"),
     "number.test_softener_hardness_setting": ("Test softener Hardness Setting", "hardness"),
     "number.test_softener_regeneration_interval": ("Test softener Regeneration Interval", "regen_interval"),
     "sensor.test_softener_anti_leakage_threshold": ("Test softener Anti-Leakage Threshold", "leak_threshold"),

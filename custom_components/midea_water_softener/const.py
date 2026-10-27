@@ -13,6 +13,16 @@ CONF_MODEL = "model"
 CONF_SERIAL_NUMBER = "serial_number"
 CONF_SCAN_INTERVAL = "scan_interval"
 
+# Anti-leakage limit (set command 0x010A).
+# UNCONFIRMED: the unit of the "addition" field when setting the limit. The status
+# byte is in units of 10 L (Lua:416) and the Lua writes the same property back with
+# no scaling, so 10 L is assumed here. Needs a real-device test before release.
+LEAK_LIMIT_SET_UNIT_L = 10
+# The Lua states no range or step. These are our own limits.
+LEAK_LIMIT_MIN_L = 10
+LEAK_LIMIT_MAX_L = 5000
+LEAK_LIMIT_STEP_L = 10
+
 # Server options presented in config flow
 SERVERS = {
     "MSmartHome (Global)": "https://mp-prod.appsmb.com/mas/v5/app/proxy?alias=",

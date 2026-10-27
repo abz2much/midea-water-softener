@@ -9,7 +9,12 @@ import pytest
 
 from custom_components.midea_water_softener.binary_sensor import WaterSoftenerLeakSensor
 from custom_components.midea_water_softener.button import RegenNowButton
-from custom_components.midea_water_softener.number import NUMBER_DESCRIPTIONS, WaterSoftenerNumber
+from custom_components.midea_water_softener.number import (
+    LEAK_LIMIT_DESCRIPTION,
+    NUMBER_DESCRIPTIONS,
+    WaterSoftenerLeakLimitNumber,
+    WaterSoftenerNumber,
+)
 from custom_components.midea_water_softener.sensor import SENSOR_DESCRIPTIONS, WaterSoftenerSensor
 from custom_components.midea_water_softener.switch import SWITCH_DESCRIPTIONS, WaterSoftenerSwitch
 from custom_components.midea_water_softener.time import RegenTimeEntity
@@ -42,6 +47,7 @@ EXPECTED = {
     "number": {
         "hardness": ("Hardness Setting", "mdi:water-minus"),
         "regen_interval": ("Regeneration Interval", "mdi:calendar-refresh"),
+        "leak_limit": ("Anti-Leakage Limit", "mdi:water-alert-outline"),
     },
     "time": {"regen_time": ("Regeneration Time", "mdi:clock-outline")},
     "button": {"regenerate_now": ("Regenerate Now", "mdi:refresh")},
@@ -55,6 +61,7 @@ def _entities() -> list[tuple[str, object]]:
     entities = [("sensor", WaterSoftenerSensor(coordinator, entry, d)) for d in SENSOR_DESCRIPTIONS]
     entities += [("switch", WaterSoftenerSwitch(coordinator, entry, d)) for d in SWITCH_DESCRIPTIONS]
     entities += [("number", WaterSoftenerNumber(coordinator, entry, d)) for d in NUMBER_DESCRIPTIONS]
+    entities.append(("number", WaterSoftenerLeakLimitNumber(coordinator, entry, LEAK_LIMIT_DESCRIPTION)))
     entities += [
         ("time", RegenTimeEntity(coordinator, entry)),
         ("button", RegenNowButton(coordinator, entry)),

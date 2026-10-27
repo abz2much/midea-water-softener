@@ -60,6 +60,9 @@
       "hardness": {
         "name": "Hardness Setting"
       },
+      "leak_limit": {
+        "name": "Anti-Leakage Limit"
+      },
       "regen_interval": {
         "name": "Regeneration Interval"
       }

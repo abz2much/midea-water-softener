@@ -37,6 +37,7 @@ from .message import (
     build_set_anti_leakage,
     build_set_hardness,
     build_set_inlet,
+    build_set_leak_limit,
     build_set_regen_interval,
     build_set_regen_time,
     build_set_soften,
@@ -130,6 +131,15 @@ class WaterSoftenerDevice:
 
     async def set_anti_leakage(self, on: bool) -> None:
         await self._send(build_set_anti_leakage(on))
+
+    async def set_leak_limit(self, volume_l: int, protection_on: bool | None) -> None:
+        # The command also carries the protection on/off state. Never guess it:
+        # a wrong value would switch the protection off or on.
+        if protection_on is None:
+            raise HomeAssistantError(
+                f"Cannot set the leak limit on {self.name} until its protection state is known"
+            )
+        await self._send(build_set_leak_limit(protection_on, volume_l))
 
     async def set_hardness(self, ppm: int) -> None:
         await self._send(build_set_hardness(ppm))
