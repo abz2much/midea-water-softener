@@ -8,6 +8,7 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .cloud import CannotConnect, InvalidAuth, MSmartHomeCloud
@@ -23,6 +24,9 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Poll interval limits, in seconds. Used by setup and by the options flow.
+_SCAN_INTERVAL = vol.All(int, vol.Range(min=10, max=300))
+
 STEP_USER_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_ACCOUNT): str,
@@ -34,6 +38,13 @@ STEP_USER_SCHEMA = vol.Schema(
 
 class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        return WaterSoftenerOptionsFlow()
 
     def __init__(self) -> None:
         self._account: str = ""
@@ -115,9 +126,7 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema = vol.Schema(
             {
                 vol.Required(CONF_DEVICE_ID): vol.In(device_options),
-                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
-                    int, vol.Range(min=10, max=300)
-                ),
+                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): _SCAN_INTERVAL,
             }
         )
 
@@ -163,4 +172,25 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
             description_placeholders={"account": entry.data[CONF_ACCOUNT]},
             errors=errors,
+        )
+
+
+class WaterSoftenerOptionsFlow(config_entries.OptionsFlowWithReload):
+    """Change the poll interval after setup. The entry reloads when it is saved."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        current = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL,
+            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {vol.Required(CONF_SCAN_INTERVAL, default=current): _SCAN_INTERVAL}
+            ),
         )
