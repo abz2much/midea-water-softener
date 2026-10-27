@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -105,3 +105,40 @@ async def test_unload_cleans_everything_up(hass, make_session):
     assert entry.state is ConfigEntryState.NOT_LOADED
     assert not hasattr(entry, "runtime_data")
     assert hass.data[DOMAIN] == {}
+
+
+async def test_an_auth_failure_on_the_first_poll_drops_the_cached_session(
+    hass, make_session
+):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    first_refresh = AsyncMock(side_effect=ConfigEntryAuthFailed("session expired"))
+    with patch(f"{PKG}.async_get_clientsession", return_value=make_session({LOGIN: [login_ok()]})), \
+         patch(f"{PKG}.WaterSoftenerCoordinator", _coordinator_cls(first_refresh)), \
+         patch.object(hass.config_entries, "async_forward_entry_setups", AsyncMock()):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+    assert f"{entry.entry_id}.cloud" not in hass.data[DOMAIN]
+
+
+async def test_setup_after_the_password_changes_logs_in_fresh(hass, make_session):
+    entry = _entry()
+    entry.add_to_hass(hass)
+    session = make_session({LOGIN: [login_ok("old"), login_ok("new")]})
+    first_refresh = AsyncMock(side_effect=[ConfigEntryAuthFailed("session expired"), None])
+    with patch(f"{PKG}.async_get_clientsession", return_value=session), \
+         patch(f"{PKG}.WaterSoftenerCoordinator", _coordinator_cls(first_refresh)), \
+         patch.object(hass.config_entries, "async_forward_entry_setups", AsyncMock()):
+        assert not await hass.config_entries.async_setup(entry.entry_id)
+        assert session.count(LOGIN) == 1
+
+        # What the reauth form does: save the new password and reload.
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, "password": "new-password"}
+        )
+        await hass.config_entries.async_reload(entry.entry_id)
+
+    assert entry.state is ConfigEntryState.LOADED
+    assert session.count(LOGIN) == 2
+    assert hass.data[DOMAIN][f"{entry.entry_id}.cloud"]._password == "new-password"

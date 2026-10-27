@@ -73,7 +73,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: WaterSoftenerConfigEntry
     device = WaterSoftenerDevice(cloud, device_id, device_name)
     coordinator = WaterSoftenerCoordinator(hass, entry, device, scan_interval)
 
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryAuthFailed:
+        # Do not keep a session made with a password that no longer works, or a
+        # reload after the reauth form would reuse it instead of logging in.
+        domain_data.pop(cloud_key, None)
+        raise
 
     entry.runtime_data = coordinator
 
