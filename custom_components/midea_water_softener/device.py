@@ -1,4 +1,4 @@
-"""Device abstraction: wraps cloud comms + message protocol for one water softener."""
+"""Device abstraction: wraps local and cloud comms + message protocol for one water softener."""
 from __future__ import annotations
 
 import logging
@@ -30,6 +30,7 @@ from .const import (
     STATUS_REGENERATING,
     STATUS_STANDBY,
 )
+from .local import LocalNoReply, LocalNotSent, LocalTransport
 from .message import (
     DeviceStatus,
     build_query,
@@ -45,6 +46,9 @@ from .message import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+_MODE_LOCAL = "local"
+_MODE_CLOUD = "cloud"
 
 
 def _status_to_dict(s: DeviceStatus) -> dict:
@@ -80,24 +84,66 @@ def _status_to_dict(s: DeviceStatus) -> dict:
 
 
 class WaterSoftenerDevice:
-    """Represents one physical water softener on the Midea cloud."""
+    """Represents one physical water softener.
+
+    With a local transport, every request goes over the LAN first and uses the
+    cloud only when local fails. Without one, it is cloud only.
+    """
 
     def __init__(
         self,
         cloud: MSmartHomeCloud,
         device_id: int,
         name: str,
+        local: LocalTransport | None = None,
     ) -> None:
         self._cloud = cloud
+        self._local = local
         self._device_id = device_id
         self.name = name
         self.available = False
         self.attributes: dict = {}
+        self._mode = _MODE_LOCAL if local else _MODE_CLOUD
+
+    def _set_mode(self, mode: str, reason: str = "") -> None:
+        """Log one INFO line when the path changes, not one per request."""
+        if mode == self._mode:
+            return
+        self._mode = mode
+        if mode == _MODE_CLOUD:
+            _LOGGER.info(
+                "[%s] Local connection failed (%s); using the cloud", self.name, reason
+            )
+        else:
+            _LOGGER.info("[%s] Local connection works again; using local", self.name)
+
+    async def _request(self, message: bytes, *, write: bool) -> bytearray | None:
+        """Send one frame: local first, then the cloud.
+
+        A write that was sent locally but got no reply is not sent again over
+        the cloud, because the softener may already have acted on it.
+        """
+        if self._local is not None:
+            try:
+                reply = await self._local.send(message)
+            except LocalNotSent as exc:
+                self._set_mode(_MODE_CLOUD, str(exc))
+            except LocalNoReply as exc:
+                self._set_mode(_MODE_CLOUD, str(exc))
+                if write:
+                    raise HomeAssistantError(
+                        f"{self.name} did not confirm the command over the local network"
+                    ) from exc
+            else:
+                self._set_mode(_MODE_LOCAL)
+                return bytearray(reply)
+            await self._cloud.ensure_logged_in()
+        return await self._cloud.send_command(self._device_id, message)
 
     async def refresh_status(self) -> dict | None:
         """Poll the device and return updated attributes, or None on failure."""
         query = build_query()
-        raw = await self._cloud.send_command(self._device_id, query)
+        raw = await self._request(query, write=False)
         if raw is None:
             _LOGGER.warning(
                 "[%s] send_command returned None for id=%s — check AES keys and cloud API logs",
@@ -155,7 +201,7 @@ class WaterSoftenerDevice:
 
     async def _send(self, message: bytes) -> None:
         try:
-            result = await self._cloud.send_command(self._device_id, message)
+            result = await self._request(message, write=True)
         except MSmartHomeError as exc:
             raise HomeAssistantError(
                 f"Could not send the command to {self.name}: {exc}"

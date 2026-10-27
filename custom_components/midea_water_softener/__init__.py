@@ -13,13 +13,17 @@ from .const import (
     CONF_ACCOUNT,
     CONF_DEVICE_ID,
     CONF_DEVICE_NAME,
+    CONF_HOST,
+    CONF_KEY,
     CONF_SERVER,
+    CONF_TOKEN,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     SERVERS,
 )
 from .coordinator import WaterSoftenerConfigEntry, WaterSoftenerCoordinator
 from .device import WaterSoftenerDevice
+from .local import LocalTransport
 from .migration import async_migrate_unique_ids
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,6 +68,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: WaterSoftenerConfigEntry
         CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     )
 
+    # Local control needs all three; without them the integration is cloud only.
+    local: LocalTransport | None = None
+    if all(entry.data.get(k) for k in (CONF_HOST, CONF_TOKEN, CONF_KEY)):
+        local = LocalTransport(
+            entry.data[CONF_HOST], device_id, entry.data[CONF_TOKEN], entry.data[CONF_KEY]
+        )
+
     domain_data = hass.data.setdefault(DOMAIN, {})
     cloud_key = entry.entry_id + _CLOUD_SUFFIX
 
@@ -82,11 +93,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: WaterSoftenerConfigEntry
         except InvalidAuth as exc:
             raise ConfigEntryAuthFailed("Midea login failed: check your password") from exc
         except CannotConnect as exc:
-            raise ConfigEntryNotReady("Cannot reach the Midea cloud") from exc
+            if local is None:
+                raise ConfigEntryNotReady("Cannot reach the Midea cloud") from exc
+            # Start on local. The device logs in when it first needs the cloud.
+            _LOGGER.info(
+                "Cannot reach the Midea cloud; starting %s on the local connection",
+                device_name,
+            )
+        else:
+            _LOGGER.debug("New cloud session established for %s", device_name)
         domain_data[cloud_key] = cloud
-        _LOGGER.debug("New cloud session established for %s", device_name)
 
-    device = WaterSoftenerDevice(cloud, device_id, device_name)
+    device = WaterSoftenerDevice(cloud, device_id, device_name, local=local)
     coordinator = WaterSoftenerCoordinator(hass, entry, device, scan_interval)
 
     try:

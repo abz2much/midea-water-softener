@@ -1,4 +1,4 @@
-"""Config flow: MSmartHome credentials → device selection."""
+"""Config flow: MSmartHome credentials → device selection → local IP address."""
 from __future__ import annotations
 
 import logging
@@ -11,19 +11,24 @@ from homeassistant.const import CONF_PASSWORD, CONF_SCAN_INTERVAL
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .cloud import CannotConnect, InvalidAuth, MSmartHomeCloud
+from .cloud import CannotConnect, InvalidAuth, MSmartHomeCloud, MSmartHomeError
 from .const import (
     CONF_ACCOUNT,
     CONF_DEVICE_ID,
     CONF_DEVICE_NAME,
+    CONF_HOST,
+    CONF_KEY,
     CONF_MODEL,
     CONF_SERIAL_NUMBER,
     CONF_SERVER,
+    CONF_TOKEN,
     DEFAULT_SCAN_INTERVAL,
     DEVICE_TYPE,
     DOMAIN,
     SERVERS,
 )
+from .local import LocalError, LocalTransport
+from .message import build_query, parse_response
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +42,46 @@ STEP_USER_SCHEMA = vol.Schema(
         vol.Required(CONF_SERVER, default=list(SERVERS.keys())[0]): vol.In(list(SERVERS.keys())),
     }
 )
+
+_LOCAL_KEYS = (CONF_HOST, CONF_TOKEN, CONF_KEY)
+
+
+def _local_schema(host: str = "") -> vol.Schema:
+    """The softener's IP address. Blank means cloud only.
+
+    A suggested value, not a default: the frontend leaves a cleared field out
+    of the submission, and a default would fill the old address back in.
+    """
+    return vol.Schema(
+        {vol.Optional(CONF_HOST, description={"suggested_value": host}): str}
+    )
+
+
+async def _async_find_local(
+    cloud: MSmartHomeCloud, device_id: int, host: str
+) -> tuple[dict[str, str], str | None]:
+    """Fetch the token and key from the cloud and test them on the softener.
+
+    Returns the entry data to save, or an error key for the form.
+    """
+    try:
+        keys = await cloud.get_keys(device_id)
+    except MSmartHomeError:
+        return {}, "token_failed"
+    if not keys:
+        return {}, "token_failed"
+
+    # The cloud may hold more than one pair; only the device knows which works.
+    for pair in keys:
+        transport = LocalTransport(host, device_id, pair["token"], pair["key"])
+        try:
+            reply = await transport.send(build_query())
+        except LocalError as exc:
+            _LOGGER.debug("Local test failed: %s", exc)
+            continue
+        if parse_response(reply) is not None:
+            return {CONF_HOST: host, CONF_TOKEN: pair["token"], CONF_KEY: pair["key"]}, None
+    return {}, "local_failed"
 
 
 class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -58,6 +103,7 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._server: str = ""
         self._cloud: MSmartHomeCloud | None = None
         self._appliances: list[dict] = []
+        self._entry_data: dict[str, Any] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -132,7 +178,8 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data[CONF_MODEL] = appliance["model"]
             if appliance.get("sn"):
                 data[CONF_SERIAL_NUMBER] = appliance["sn"]
-            return self.async_create_entry(title=device_name, data=data)
+            self._entry_data = data
+            return await self.async_step_local()
 
         schema = vol.Schema(
             {
@@ -144,6 +191,78 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="device",
             data_schema=schema,
+            errors=errors,
+        )
+
+    async def async_step_local(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Ask for the softener's IP address. Blank means cloud only."""
+        errors: dict[str, str] = {}
+        title = self._entry_data[CONF_DEVICE_NAME]
+        host = ""
+
+        if user_input is not None:
+            host = user_input.get(CONF_HOST, "").strip()
+            if not host:
+                return self.async_create_entry(title=title, data=self._entry_data)
+            local_data, error = await _async_find_local(
+                self._cloud, self._entry_data[CONF_DEVICE_ID], host
+            )
+            if error is None:
+                return self.async_create_entry(
+                    title=title, data={**self._entry_data, **local_data}
+                )
+            errors["base"] = error
+
+        return self.async_show_form(
+            step_id="local",
+            data_schema=_local_schema(host),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Add, change or remove the softener's IP address.
+
+        Uses the account and password already in the entry. Blank means cloud only.
+        """
+        entry = self._get_reconfigure_entry()
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            host = user_input.get(CONF_HOST, "").strip()
+            if not host:
+                data = {k: v for k, v in entry.data.items() if k not in _LOCAL_KEYS}
+                return self.async_update_reload_and_abort(entry, data=data)
+
+            api_url = SERVERS.get(entry.data[CONF_SERVER], list(SERVERS.values())[0])
+            cloud = MSmartHomeCloud(
+                async_get_clientsession(self.hass),
+                entry.data[CONF_ACCOUNT],
+                entry.data[CONF_PASSWORD],
+                api_url,
+            )
+            try:
+                await cloud.login()
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except CannotConnect:
+                errors["base"] = "cannot_connect"
+            else:
+                local_data, error = await _async_find_local(
+                    cloud, entry.data[CONF_DEVICE_ID], host
+                )
+                if error is None:
+                    return self.async_update_reload_and_abort(
+                        entry, data_updates=local_data
+                    )
+                errors["base"] = error
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=_local_schema(entry.data.get(CONF_HOST, "")),
             errors=errors,
         )
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Custom Home Assistant integration for the Midea QS2476-90 water softener (9L Grey). Installed via HACS. Communicates exclusively via Midea's cloud API (no LAN) using MSmartHome credentials.
+Custom Home Assistant integration for the Midea QS2476-90 water softener (9L Grey). Installed via HACS. Talks to the softener over the LAN (port 6444) when the entry has `host`, `token` and `key`, with Midea's MSmartHome cloud API as the fallback. Without those three keys it is cloud only.
 
 Device type: `0xED`. Query body type: `0x09`. Protocol file: `T_0000_ED_10008619_2024092001.lua`.
 
@@ -16,11 +16,13 @@ custom_components/midea_water_softener/
 ├── manifest.json
 ├── const.py             # all shared constants and attribute key names
 ├── security.py          # MSmartSecurity: AES, HMAC, password hashing
-├── cloud.py             # MSmartHomeCloud: login, list_appliances, send_command
+├── cloud.py             # MSmartHomeCloud: login, list_appliances, get_keys, send_command
+├── local.py             # LocalTransport: LAN handshake + one frame per connection
 ├── message.py           # build_query, build_set_*, parse_response, DeviceStatus
-├── device.py            # WaterSoftenerDevice: wraps cloud + message protocol
+├── device.py            # WaterSoftenerDevice: local first, cloud fallback, + message protocol
 ├── coordinator.py       # WaterSoftenerCoordinator (DataUpdateCoordinator)
-├── config_flow.py       # step_user (credentials) → step_device (selection)
+├── config_flow.py       # step_user (credentials) → step_device (selection) → step_local (IP); reconfigure (IP)
+├── diagnostics.py       # redacts credentials, ids, token and key
 ├── sensor.py
 ├── switch.py
 ├── number.py
@@ -28,9 +30,18 @@ custom_components/midea_water_softener/
 └── button.py
 ```
 
-**Data flow:** `coordinator` polls `device.refresh_status()` → `device` calls `cloud.send_command(build_query())` → response bytes decoded by `parse_response()` → dict of attributes keyed by `ATTR_*` constants from `const.py` → entities read from `coordinator.data`.
+**Data flow:** `coordinator` polls `device.refresh_status()` → `device._request(build_query())` → `local.send()` if configured, else (or on local failure) `cloud.send_command()` → response bytes decoded by `parse_response()` → dict of attributes keyed by `ATTR_*` constants from `const.py` → entities read from `coordinator.data`.
 
-**Write flow:** entity calls `device.set_*(...)` → `device` calls `cloud.send_command(build_set_*(...))` → `coordinator.async_request_refresh()`.
+**Write flow:** entity calls `device.set_*(...)` → `device._request(build_set_*(...), write=True)` (same path as reads) → `coordinator.async_request_refresh()`.
+
+**Fallback rules (`device._request`):**
+- `LocalNotSent` (refused, timeout before sending, handshake error) → the cloud handles that request, reads and writes alike.
+- `LocalNoReply` (frame sent, no reply) → reads fall back to the cloud; writes raise `HomeAssistantError` and are NOT resent, because the softener may already have acted.
+- One INFO log line per mode change (local → cloud, cloud → local), never per request.
+- Before a cloud fallback, `cloud.ensure_logged_in()` logs in if setup skipped it (cloud down at startup with local configured).
+- Both paths failing: polls raise `UpdateFailed`, commands raise `HomeAssistantError`, as in cloud-only mode.
+
+**Setup (`__init__.py`):** builds a `LocalTransport` only when `host`, `token` and `key` are all in `entry.data`. If the cloud login raises `CannotConnect` and local is configured, setup carries on; `InvalidAuth` still raises `ConfigEntryAuthFailed`.
 
 ## Protocol (message.py)
 
@@ -80,6 +91,16 @@ In the Lua, the `addition` of `anti_leakage` (0x010A) carries the leak volume, a
 - **Response parsing:** Success = `int(body["code"]) == 0`, data is in `body["data"]`.
 - **`_make_general_data()`:** All requests include `appVersion`, `src`, `format`, `stamp`, `platformId`, `deviceId`, `reqId`, `uid`, `clientType`, `appId`.
 - **Fixed key/IV** (integers `13101328926877700970` / `16429062708050928556`): only used for Lua file decryption, NOT for login or device commands.
+
+## Local API (local.py)
+
+- **Library:** `midea-local==14.0.0` (manifest requirement). Uses its `LocalSecurity` (8370 encode/decode, `tcp_key`) and `PacketBuilder` (the 0x5A5A wrapper). No crypto of our own.
+- **Per request:** connect `host:6444` → send `encode_8370(token, 0)` → `tcp_key(reply[8:72], key)` → send `encode_8370(PacketBuilder(device_id, frame).finalize(), 6)` → read until a reply → close. 10 s limit on the whole request. A lock on the transport stops a poll and a command opening two sessions at once (many Midea devices accept only one).
+- **Reply:** `decode_8370` the stream, skip heartbeat payload types `0x0001`/`0x1001` and packets of 56 bytes or less, `aes_decrypt(packet[40:-16])` gives the `0xAA` frame. Frames with message type `0x04` (unrequested status report) are skipped; the first other frame is returned.
+- **Errors:** every failure (timeout, socket error, midea-local error, malformed packet) maps to `LocalNotSent` before the frame left, `LocalNoReply` after. Messages never contain the token or key.
+- **Token and key (`cloud.get_keys`):** `POST /v1/iot/secure/getToken` with `udpid = CloudSecurity.get_udp_id(device_id, method)` for methods 1 and 2, plus `applianceCodes = str(device_id)` (MSmartHome returns 3004 without it). Keep `tokenlist` entries whose `udpId` matches, lowercased. The config flow tests each pair with a status query and saves the first that parses. Unverified against the live cloud: the request uses our own `_make_general_data()`, not midea-local's field set.
+- **Config entry keys:** `host`, `token`, `key` (`CONF_HOST`, `CONF_TOKEN`, `CONF_KEY` in `const.py`). A blank IP in the `local` or `reconfigure` step means cloud only; reconfigure with a blank IP removes all three. The IP field uses `suggested_value`, not `default`: the frontend drops a cleared optional field, and a default would put the old IP back.
+- **Tests:** `tests/test_local.py` runs a fake softener on 127.0.0.1 using midea-local's own crypto. It needs the `socket_enabled` fixture because the HA test plugin blocks sockets.
 
 ## Working Style
 

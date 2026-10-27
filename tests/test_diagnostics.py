@@ -92,3 +92,28 @@ async def test_last_failure_is_reported(hass):
     )
     assert result["coordinator"]["last_update_success"] is False
     assert "cloud down" in result["coordinator"]["last_exception"]
+
+
+async def test_the_local_token_and_key_are_redacted(hass):
+    local_token = "ab" * 64
+    local_key = "cd" * 32
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Test softener",
+        data={
+            "account": ACCOUNT,
+            "password": PASSWORD,
+            "server": "MSmartHome (Global)",
+            "device_id": DEVICE_ID,
+            "device_name": "Test softener",
+            "host": "192.0.2.10",
+            "token": local_token,
+            "key": local_key,
+        },
+    )
+    result = await _diagnostics(hass, entry, _coordinator())
+    text = json.dumps(result, default=str)
+    assert local_token not in text
+    assert local_key not in text
+    assert result["entry"]["data"]["token"] == "**REDACTED**"
+    assert result["entry"]["data"]["key"] == "**REDACTED**"

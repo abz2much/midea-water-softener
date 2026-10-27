@@ -108,6 +108,10 @@ async def _run_flow(hass, make_session, appliance):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"device_id": "123456"}
         )
+        # A blank IP address: cloud only.
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": ""}
+        )
         await hass.async_block_till_done()
     assert result["type"] is FlowResultType.CREATE_ENTRY
     return result["data"]

@@ -194,5 +194,9 @@ async def test_the_config_flow_creates_version_1_minor_2(hass, make_session):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"device_id": "123456"}
         )
+        # A blank IP address: cloud only.
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": ""}
+        )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert (result["version"], result["minor_version"]) == (1, 2)

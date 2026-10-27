@@ -12,6 +12,10 @@ CONF_DEVICE_NAME = "device_name"
 CONF_MODEL = "model"
 CONF_SERIAL_NUMBER = "serial_number"
 CONF_SCAN_INTERVAL = "scan_interval"
+# Local (LAN) control. All three must be set, or the integration is cloud only.
+CONF_HOST = "host"
+CONF_TOKEN = "token"
+CONF_KEY = "key"
 
 # Anti-leakage limit (set command 0x010A).
 # UNCONFIRMED: the unit of the "addition" field when setting the limit. The status

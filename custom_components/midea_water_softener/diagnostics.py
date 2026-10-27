@@ -10,8 +10,10 @@ from homeassistant.loader import async_get_integration
 from .const import (
     CONF_ACCOUNT,
     CONF_DEVICE_ID,
+    CONF_KEY,
     CONF_PASSWORD,
     CONF_SERIAL_NUMBER,
+    CONF_TOKEN,
     DOMAIN,
 )
 from .coordinator import WaterSoftenerConfigEntry
@@ -21,6 +23,8 @@ TO_REDACT = {
     CONF_PASSWORD,
     CONF_SERIAL_NUMBER,
     CONF_DEVICE_ID,
+    CONF_TOKEN,
+    CONF_KEY,
     "access_token",
     "accessToken",
     "uid",
