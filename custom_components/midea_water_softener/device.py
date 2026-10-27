@@ -109,7 +109,7 @@ class WaterSoftenerDevice:
         if status is None:
             _LOGGER.warning(
                 "[%s] Could not parse status response (len=%d, hex=%s)",
-                self._device_id, len(raw), raw.hex(),
+                self.name, len(raw), raw.hex(),
             )
             self.available = False
             return None
