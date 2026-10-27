@@ -53,7 +53,7 @@ async def _scan_interval_used(hass, make_session, entry) -> int:
          patch(f"{PKG}.WaterSoftenerCoordinator", coordinator_cls), \
          patch.object(hass.config_entries, "async_forward_entry_setups", AsyncMock()):
         assert await hass.config_entries.async_setup(entry.entry_id)
-    return coordinator_cls.call_args.args[2]
+    return coordinator_cls.call_args.args[3]
 
 
 async def test_no_option_uses_the_setup_value(hass, make_session):

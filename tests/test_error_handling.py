@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import aiohttp
 import pytest
@@ -30,10 +30,7 @@ async def _device(make_session, make_cloud, routes):
 
 
 def _coordinator(device) -> WaterSoftenerCoordinator:
-    # HA reports a coordinator built without a config entry; that needs a
-    # running frame helper, which these tests do not have.
-    with patch("homeassistant.helpers.frame.report_usage"):
-        return WaterSoftenerCoordinator(MagicMock(), device)
+    return WaterSoftenerCoordinator(MagicMock(), MagicMock(), device)
 
 
 async def test_command_with_cloud_down_raises_home_assistant_error(

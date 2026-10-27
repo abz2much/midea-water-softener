@@ -73,7 +73,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.debug("New cloud session established for %s", device_name)
 
     device = WaterSoftenerDevice(cloud, device_id, device_name)
-    coordinator = WaterSoftenerCoordinator(hass, device, scan_interval)
+    coordinator = WaterSoftenerCoordinator(hass, entry, device, scan_interval)
 
     await coordinator.async_config_entry_first_refresh()
 
