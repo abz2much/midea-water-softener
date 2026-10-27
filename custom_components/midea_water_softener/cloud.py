@@ -24,6 +24,10 @@ _DEFAULT_API_URL = "https://mp-prod.appsmb.com/mas/v5/app/proxy?alias="
 # Cloud code for "user token not exist". Confirmed upstream in
 # sususweet/midea_auto_cloud PR #225. Other codes are not treated as expiry.
 _CODE_SESSION_EXPIRED = 40002
+# transparent/send: "The async reply does not exist". The command was delivered
+# but the device sent no reply. Seen upstream for control commands
+# (sususweet/midea_auto_cloud issue #254, handled in its current code).
+_CODE_NO_ASYNC_REPLY = 1306
 
 
 class MSmartHomeError(Exception):
@@ -165,6 +169,10 @@ class MSmartHomeCloud:
 
         if code == _CODE_SESSION_EXPIRED:
             raise SessionExpired(f"Midea cloud session expired ({endpoint})")
+
+        if code == _CODE_NO_ASYNC_REPLY and "/transparent/send" in endpoint:
+            _LOGGER.debug("transparent/send: delivered, no reply from device")
+            return {"no_reply": True}
 
         if "/transparent/send" in endpoint:
             _LOGGER.warning("transparent/send error: code=%s full_response=%s", body.get("code"), body)
@@ -320,7 +328,8 @@ class MSmartHomeCloud:
     async def send_command(self, device_id: int, message: bytes) -> bytearray | None:
         """
         Send a raw protocol message via the transparent-send endpoint.
-        Returns decoded response bytes, or None on failure.
+        Returns decoded response bytes, or None on failure. Returns empty bytes
+        if the cloud delivered the command but the device sent no reply (1306).
         """
         dec_str = _bytes_to_dec_string(message)
 
@@ -351,6 +360,9 @@ class MSmartHomeCloud:
             return None
         if not resp:
             return None
+
+        if resp.get("no_reply"):
+            return bytearray()
 
         reply_hex = resp.get("reply")
         if not reply_hex:
