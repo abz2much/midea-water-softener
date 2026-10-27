@@ -18,6 +18,7 @@ from .const import (
     CONF_DEVICE_NAME,
     CONF_SERVER,
     DEFAULT_SCAN_INTERVAL,
+    DEVICE_TYPE,
     DOMAIN,
     SERVERS,
 )
@@ -55,7 +56,7 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -74,7 +75,6 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except CannotConnect:
                 errors["base"] = "cannot_connect"
             else:
-                from .const import DEVICE_TYPE
                 all_appliances = await cloud.list_appliances()
                 self._appliances = [a for a in all_appliances if a["type"] == DEVICE_TYPE]
                 self._cloud = cloud
@@ -92,7 +92,7 @@ class WaterSoftenerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_device(
         self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         errors: dict[str, str] = {}
 
         device_options = {
