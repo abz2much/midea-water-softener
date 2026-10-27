@@ -94,7 +94,7 @@ In the Lua, the `addition` of `anti_leakage` (0x010A) carries the leak volume, a
 
 ## Local API (local.py)
 
-- **Library:** `midea-local==14.0.0` (manifest requirement). Uses its `LocalSecurity` (8370 encode/decode, `tcp_key`) and `PacketBuilder` (the 0x5A5A wrapper). No crypto of our own.
+- **Library:** `midea-local==12.2.0` (manifest requirement). Pinned to the version Home Assistant's own Midea integration uses: hassfest rejects any other, and two versions cannot be installed side by side. Bump it only when HA does. Uses its `LocalSecurity` (8370 encode/decode, `tcp_key`) and `PacketBuilder` (the 0x5A5A wrapper). No crypto of our own.
 - **Per request:** connect `host:6444` → send `encode_8370(token, 0)` → `tcp_key(reply[8:72], key)` → send `encode_8370(PacketBuilder(device_id, frame).finalize(), 6)` → read until a reply → close. 10 s limit on the whole request. A lock on the transport stops a poll and a command opening two sessions at once (many Midea devices accept only one).
 - **Reply:** `decode_8370` the stream, skip heartbeat payload types `0x0001`/`0x1001` and packets of 56 bytes or less, `aes_decrypt(packet[40:-16])` gives the `0xAA` frame. Frames with message type `0x04` (unrequested status report) are skipped; the first other frame is returned.
 - **Errors:** every failure (timeout, socket error, midea-local error, malformed packet) maps to `LocalNotSent` before the frame left, `LocalNoReply` after. Messages never contain the token or key.
