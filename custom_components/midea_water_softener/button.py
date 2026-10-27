@@ -36,3 +36,4 @@ class RegenNowButton(CoordinatorEntity[WaterSoftenerCoordinator], ButtonEntity):
 
     async def async_press(self) -> None:
         await self.coordinator.device.regenerate_now()
+        await self.coordinator.async_request_refresh()

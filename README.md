@@ -70,7 +70,7 @@ To change the poll interval later, open the integration and choose **Configure**
 ## Notes
 
 - The integration polls the MSmartHome cloud. A stable internet connection is required; local LAN communication is not supported.
-- All write operations (switches, numbers, time, button) send commands through the cloud. The switches, numbers and time entity then trigger an immediate poll to refresh state. The Regenerate Now button does not; its state shows on the next regular poll.
+- All write operations (switches, numbers, time, button) send commands through the cloud and trigger an immediate poll to refresh state. If a command fails, Home Assistant shows an error and does not poll.
 - The session is established once at startup and reused across poll cycles. If the cloud says the session has expired, the integration logs in again once and retries that request once. If that also fails, the request fails with an error and the next poll tries again. A wrong password or an unreachable cloud at startup stops setup with a clear error.
 
 ## Credits
