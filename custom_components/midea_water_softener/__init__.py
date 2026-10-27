@@ -45,7 +45,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     server = entry.data[CONF_SERVER]
     device_id = entry.data[CONF_DEVICE_ID]
     device_name = entry.data.get(CONF_DEVICE_NAME, "Water Softener")
-    scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    # An option set after setup wins over the value saved at setup.
+    scan_interval = entry.options.get(
+        CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    )
 
     domain_data = hass.data.setdefault(DOMAIN, {})
     cloud_key = entry.entry_id + _CLOUD_SUFFIX
